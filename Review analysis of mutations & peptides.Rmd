@@ -1,0 +1,397 @@
+---
+title: "Review analysis of mutations & peptides"
+author: "Jacqueline Buros"
+date: "6/16/2017"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE)
+
+library(readr)     # load data
+library(survival)  # base survival (coxph, etc)
+library(survminer) # better plotting of KM curves
+library(tidyverse) # data manipulation
+
+# load data
+data_url <- 'https://raw.githubusercontent.com/hammerlab/paper-aocs-chemo-neoantigens/master/additional-files/Additional%20File%201.csv'
+d <- readr::read_csv(data_url) 
+
+## modified or mutated data stored in md
+above_quantile <- function(x, q, ...) {
+  x > quantile(x, probs = q, ...)
+}
+
+above_quantile_str <- function(x, q, ...) {
+  threshold <- as.integer(quantile(x, probs = q, ...))
+  ifelse(x > threshold, stringr::str_c('>', threshold), stringr::str_c('<=', threshold))
+}
+
+md <- d %>%
+  dplyr::mutate(event = donor_vital_status == 'deceased',
+                mutations_excl = ifelse(mutations >= 30000, NA, mutations)) %>%
+  dplyr::filter(specific_treatment == 'primary/untreated' & tissue_type == 'solid') %>%
+  tidyr::drop_na(event, donor_survival_time, tumour_stage, mutations) %>%
+  dplyr::mutate_each(funs = funs(above_median = above_quantile(., q = 0.5, na.rm = T),
+                                 above_median_str = above_quantile_str(., q = 0.5, na.rm = T),
+                                 above_p75 = above_quantile(., q = 0.75, na.rm = T),
+                                 above_p75_str = above_quantile_str(., q = 0.75, na.rm = T)
+                                 ),
+                     mutations, peptides, mutations_excl)
+
+md_all <- d %>%
+  dplyr::mutate(event = donor_vital_status == 'deceased') %>%
+  tidyr::drop_na(event, donor_survival_time, tumour_stage, mutations) %>%
+  dplyr::mutate_each(funs = funs(above_median = above_quantile(., q = 0.5),
+                                 above_median_str = above_quantile_str(., q = 0.5),
+                                 above_p75 = above_quantile(., q = 0.75),
+                                 above_p75_str = above_quantile_str(., q = 0.75)
+  ),
+  mutations, peptides)
+
+# mull model for plotting
+m0 <- survival::survfit(Surv(time = donor_survival_time, event = event) ~ 1, data = md)
+
+# null model for coxph
+mph0 <- survival::coxph(Surv(time = donor_survival_time, event = event) ~ 1, data = md)
+```
+
+
+## Analysis of tumour stage
+
+Plotting KM estimates by tumour stage
+
+```{r plot-tumour-stage}
+update(m0, . ~ . + tumour_stage, data = md) %>%
+  survminer::ggsurvplot(., risk.table = TRUE, conf.int = TRUE) 
+```
+
+Fit coxph model 
+
+```{r coxph-tumour-stage}
+mph1 <- update(mph0, . ~ . + tumour_stage)
+summary(mph1)
+```
+
+Test for non-proportional hazards over linear time
+
+```{r zph-tumour-stage-linear}
+cox.zph(mph1)
+```
+
+Test for non-proportional hazards over log-time
+
+```{r zph-tumour-stage-log}
+cox.zph(mph1, transform = log)
+```
+
+_ These both suggest that we don't have NPH in the unadjusted data, which means we will likely not need to stratify by tumour stage. Also suggests that some of the tumour stage association could be due to small sample sizes _
+
+_ Still, the direction is pretty unexpected & given small sample size with stage IV I wonder if there isn't some selection bias for solid / untreated stage IV tumours._
+
+Test for overly influential observations (on their effect on beta - so scale here is relative to beta estimate).
+
+```{r influence-tumour-stage}
+mph1.dfbeta <- residuals(mph1, type="dfbeta")
+plot(mph1.dfbeta)
+```
+
+
+This caused me to wonder why some of these were so strongly negative -- is there heterogeneity in assessment of tumour stage?
+
+Did some looking at tumour-grade & percentage cellularity, which didn't modify the influence of these observations. Also tried to look at larger (ascites / treated/relapse) data to see if there was selection bias, but some key variables were missing for those datapoints and so I ultimately decided this was probably OK as-is.
+
+(code used to check for addition of tumour-stage)
+```{r checking-tumour-stage-grade}
+mph2 <- update(mph1, . ~ . + tumour_grade)
+
+cox.zph(mph2, transform = log)
+mph2.dfbeta <- residuals(mph2, type="dfbeta")
+par(mfrow=c(1, 2))
+for (j in 1:2) {
+  plot(mph2.dfbeta[, j], ylab=names(coef(mph2))[j])
+  abline(h=0, lty=2)
+  }
+title('testing for influential observations', outer = T)
+```
+
+(code used to check for addition of tumour-stage)
+
+```{r checking-tumour-stage-cellularity}
+mph3 <- update(mph1, . ~ . + percentage_cellularity)
+
+# non-prop hazards
+cox.zph(mph3, transform = log)
+
+# overly influential?
+mph3.dfbeta <- residuals(mph3, type="dfbeta")
+par(mfrow=c(1, 2))
+for (j in 1:2) {
+  plot(mph3.dfbeta[, j], ylab=names(coef(mph3))[j])
+  abline(h=0, lty=2)
+}
+title('testing for influential observations', outer = T)
+dev.off() ## reset plot area
+
+# non-linearity?
+mph3.martin <- residuals(mph3, type="martingale")
+mph3.X <- as.matrix(md %>% tidyr::drop_na(percentage_cellularity) %>% dplyr::select(percentage_cellularity))
+plot(mph3.X[, 1], mph3.martin, xlab="percentage_cellularity", ylab="residuals")
+title('testing for non-linear assocations', outer = T)
+abline(h=0, lty=2)
+lines(lowess(mph3.X[, 1], mph3.martin, iter=0))
+```
+
+(the above suggests that using bins of cellularity might provide a better measure)
+
+```{r checking-tumour-stage-lcellularity}
+mph3a <- update(mph1, . ~ . + level_of_cellularity)
+
+# non-prop hazards
+cox.zph(mph3a, transform = log)
+
+# overly influential?
+mph3a.dfbeta <- residuals(mph3a, type="dfbeta")
+par(mfrow=c(1, 3))
+for (j in 1:3) {
+  plot(mph3a.dfbeta[, j], ylab=names(coef(mph3a))[j])
+  abline(h=0, lty=2)
+}
+title('testing for influential observations', outer = T)
+dev.off() ## reset plot area
+
+# non-linearity?
+mph3a.martin <- residuals(mph3a, type="martingale")
+mph3a.X <- as.matrix(md %>% tidyr::drop_na(percentage_cellularity) %>% dplyr::select(percentage_cellularity))
+plot(mph3a.X[, 1], mph3a.martin, xlab="percentage_cellularity", ylab="residuals")
+title('testing for non-linear assocations', outer = T)
+abline(h=0, lty=2)
+lines(lowess(mph3a.X[, 1], mph3a.martin, iter=0))
+```
+
+
+## Analysis of mutations with survival 
+
+```{r analysis-of-mutations}
+mph4 <- update(mph0, . ~ . + tumour_stage + percentage_cellularity + mutations)
+summary(mph4)
+```
+
+test for non-prop hazards
+```{r zph-mutations}
+cox.zph(mph4)
+cox.zph(mph4, transform = log)
+```
+
+test for overly influential observations
+```{r infl-mutations}
+mph4.dfbeta <- residuals(mph4, type="dfbeta")
+par(mfrow=c(1, 3))
+for (j in 1:3) {
+  plot(mph4.dfbeta[, j], ylab=names(coef(mph4))[j])
+  abline(h=0, lty=2)
+}
+title('test for influential observations', outer = T)
+```
+
+Seems likely the above is the observation with v high mutation count.
+
+```{r nonlin-mutations}
+mph4.martin <- residuals(mph4, type='martingale')
+mph4.X <- as.matrix(md %>% tidyr::drop_na(percentage_cellularity) %>% dplyr::select(percentage_cellularity, mutations))
+par(mfrow=c(1, 2))
+for (j in 1:2) {
+  plot(mph4.X[, j], mph4.martin, xlab=c('percentage_cellularity', 'mutations')[j], ylab="residuals")
+  abline(h=0, lty=2)
+  lines(lowess(mph4.X[, j], mph4.martin, iter=0))
+}
+title('test for non-linearity of effect', outer = T)
+# this confirms that we should probably drop this observation with very high mutation count
+```
+
+Plot KM estimates by mutation count <> median 
+
+```{r km1-mutations}
+# plot by mutation count <> median
+update(m0, . ~ . + mutations_above_median, data = md) %>%
+  survminer::ggsurvplot(., risk.table = TRUE, conf.int = TRUE, pval = TRUE)
+```
+
+Plot KM estimate by mutation count <> p75
+
+```{r km2-mutations}
+update(m0, . ~ . + mutations_above_p75, data = md) %>%
+  survminer::ggsurvplot(., risk.table = TRUE, conf.int = TRUE, pval = TRUE)
+```
+
+## Analysis of mutations excluding v high counts
+
+Cox PH analysis excluding outlier mutation count
+
+```{r coxph-mut-excl}
+mph4e <- update(mph0, . ~ . + tumour_stage + percentage_cellularity + mutations_excl)
+summary(mph4e)
+```
+
+test for non-proportional hazards
+
+```{r zph-mut-excl}
+# non-prop hazards
+cox.zph(mph4e)
+cox.zph(mph4e, transform = log)
+```
+
+The above suggests we should now stratify by tumour-stage
+
+Update our analysis to use the stratified analysis
+
+```{r coxph-mut-e-s}
+(mph4s <- update(mph0, . ~ . + strata(tumour_stage) + percentage_cellularity + mutations_excl))
+```
+
+Test for non-prop hazards
+
+```{r zph-mut-e-s}
+# non-prop hazards
+cox.zph(mph4s)
+cox.zph(mph4s, transform = log)
+```
+
+Influential observations
+
+```{r inf-mut-e-s}
+mph4s.dfbeta <- residuals(mph4s, type="dfbeta")
+par(mfrow=c(1, 2))
+for (j in 1:2) {
+  plot(mph4s.dfbeta[, j], ylab=names(coef(mph4s))[j])
+  abline(h=0, lty=2)
+}
+title('test for influenctial observations', outer = T)
+```
+
+Non-linearity of effects 
+
+```{r nonlin-mut-e-s}
+mph4s.martin <- residuals(mph4s, type='martingale')
+mph4s.X <- as.matrix(md %>% tidyr::drop_na(percentage_cellularity, mutations_excl) %>% dplyr::select(percentage_cellularity, mutations_excl))
+par(mfrow=c(1, 2))
+for (j in 1:2) {
+  plot(mph4s.X[, j], mph4s.martin, xlab=c('percentage_cellularity', 'mutations_excl')[j], ylab="residuals")
+  abline(h=0, lty=2)
+  lines(lowess(mph4s.X[, j], mph4s.martin, iter=0))
+}
+title('Test for nonlinear effect', outer = T)
+# this confirms that we should probably drop this observation with very high mutation count
+```
+
+### How does the model look if we use the binned cellularity data?
+
+```{r analysis-mut-e-s-binnes}
+(mph5 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + mutations_excl))
+```
+
+```{r zph-mut-e-s-b}
+# non-prop hazards
+cox.zph(mph5, transform = log)
+```
+
+```{r infl-mut-e-s-b}
+# overly influential?
+mph5.dfbeta <- residuals(mph5, type="dfbeta")
+par(mfrow=c(1, length(coef(mph5))))
+for (j in 1:length(coef(mph5))) {
+  plot(mph5.dfbeta[, j], ylab=names(coef(mph5))[j])
+  abline(h=0, lty=2)
+}
+```
+
+non-linearity?
+
+```{r nonlin-mut-e-s-b}
+mph5.martin <- residuals(mph5, type='martingale')
+mph5.X <- as.matrix(md %>% tidyr::drop_na(percentage_cellularity, mutations_excl) %>% dplyr::select(percentage_cellularity, mutations_excl))
+par(mfrow=c(1, 2))
+for (j in 1:2) {
+  plot(mph5.X[, j], mph5.martin, xlab=c('percentage_cellularity', 'mutations_excl')[j], ylab="residuals")
+  abline(h=0, lty=2)
+  lines(lowess(mph5.X[, j], mph5.martin, iter=0))
+}
+# this confirms that we should probably drop this observation with very high mutation count
+```
+
+### How does the model look if we use the log-cellularity data?
+
+```{r analysis-mut-e-s-log}
+(mph5b <- update(mph0, . ~ . + strata(tumour_stage) + log1p(percentage_cellularity) + mutations_excl))
+```
+
+```{r zph-mut-e-s-l}
+# non-prop hazards
+cox.zph(mph5b, transform = log)
+```
+
+```{r infl-mut-e-s-l}
+# overly influential?
+mph5b.dfbeta <- residuals(mph5b, type="dfbeta")
+par(mfrow=c(1, length(coef(mph5b))))
+for (j in 1:length(coef(mph5b))) {
+  plot(mph5b.dfbeta[, j], ylab=names(coef(mph5b))[j])
+  abline(h=0, lty=2)
+}
+```
+
+non-linearity?
+
+```{r nonlin-mut-e-s-l}
+mph5b.martin <- residuals(mph5b, type='martingale')
+mph5b.X <- as.matrix(md %>% tidyr::drop_na(percentage_cellularity, mutations_excl) %>% dplyr::select(percentage_cellularity, mutations_excl))
+par(mfrow=c(1, 2))
+for (j in 1:2) {
+  plot(mph5b.X[, j], mph5b.martin, xlab=c('percentage_cellularity', 'mutations_excl')[j], ylab="residuals")
+  abline(h=0, lty=2)
+  lines(lowess(mph5b.X[, j], mph5b.martin, iter=0))
+}
+```
+
+## Analysis of neoantigens (peptides)
+
+```{r coxph-neoant}
+(mph6 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + peptides))
+```
+
+
+non-prop hazards?
+
+```{r zph-neoant}
+# non-prop hazards
+cox.zph(mph6, transform = log)
+```
+
+influence? 
+
+```{r inf-neoant}
+mph6.dfbeta <- residuals(mph6, type="dfbeta")
+par(mfrow=c(1, length(coef(mph6))))
+for (j in 1:length(coef(mph6))) {
+  plot(mph6.dfbeta[, j], ylab=names(coef(mph6))[j])
+  abline(h=0, lty=2)
+}
+```
+
+non-linearity?
+
+```{r nonlin-neoant}
+mph6.martin <- residuals(mph6, type='martingale')
+mph6.X <- as.matrix(md %>% tidyr::drop_na(percentage_cellularity, peptides) %>% dplyr::select(percentage_cellularity, peptides))
+par(mfrow=c(1, 2))
+for (j in 1:2) {
+  plot(mph6.X[, j], mph6.martin, xlab=c('percentage_cellularity', 'peptides')[j], ylab="residuals")
+  abline(h=0, lty=2)
+  lines(lowess(mph6.X[, j], mph6.martin, iter=0))
+}
+```
+
+this confirms that we should probably drop this observation with very high mutation count.
+
+
+
