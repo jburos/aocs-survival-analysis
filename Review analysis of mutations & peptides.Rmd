@@ -99,7 +99,12 @@ plot(mph1.dfbeta)
 
 This caused me to wonder why some of these were so strongly negative -- is there heterogeneity in assessment of tumour stage?
 
-Did some looking at tumour-grade & percentage cellularity, which didn't modify the influence of these observations. Also tried to look at larger (ascites / treated/relapse) data to see if there was selection bias, but some key variables were missing for those datapoints and so I ultimately decided this was probably OK as-is.
+Did some looking at tumour-grade & percentage cellularity, which didn't modify the influence of these observations. Also tried to look at larger (ascites / treated/relapse) data to see if there was selection bias, but tumor-stage data were missing for too many of these combinations and so I ultimately decided this was probably OK as-is.
+
+```{r showing-missing-tumour-stage}
+d %>% dplyr::distinct(specific_treatment, tissue_type, tumour_stage)
+```
+
 
 (code used to check for addition of tumour-stage)
 ```{r checking-tumour-stage-grade}
@@ -395,5 +400,16 @@ for (j in 1:2) {
 
 This confirms that we should probably drop this observation with very high mutation count.
 
+## Can we model neoantigens & mutation count effects?
+
+```{r cox-both}
+summary(mph7 <- update(mph0, . ~ . + level_of_cellularity + strata(tumour_stage) + mutations_excl + peptides))
+```
+
+```{r}
+summary(mph7 <- update(mph0, ~ . + level_of_cellularity + strat(tumour_stage) + mutations_excl + peptides))
+summary(mph7v2 <- update(mph0, ~ . + level_of_cellularity + strat(tumour_stage) + I(mutations_excl + peptides)))
+anova(mph7, mph7v2)
+```
 
 
