@@ -104,7 +104,31 @@ title('testing for influential observations', outer = T)
 
 ``` r
 mph3 <- update(mph1, . ~ . + percentage_cellularity)
+summary(mph3)
+```
 
+    ## Call:
+    ## survival::coxph(formula = Surv(time = donor_survival_time, event = event) ~ 
+    ##     tumour_stage + percentage_cellularity, data = md)
+    ## 
+    ##   n= 69, number of events= 57 
+    ##    (6 observations deleted due to missingness)
+    ## 
+    ##                            coef exp(coef) se(coef)      z Pr(>|z|)
+    ## tumour_stageIV         -0.56046   0.57094  0.43410 -1.291    0.197
+    ## percentage_cellularity  0.01983   1.02003  0.01459  1.360    0.174
+    ## 
+    ##                        exp(coef) exp(-coef) lower .95 upper .95
+    ## tumour_stageIV            0.5709     1.7515    0.2438     1.337
+    ## percentage_cellularity    1.0200     0.9804    0.9913     1.050
+    ## 
+    ## Concordance= 0.573  (se = 0.043 )
+    ## Rsquare= 0.051   (max possible= 0.997 )
+    ## Likelihood ratio test= 3.6  on 2 df,   p=0.1652
+    ## Wald test            = 3.35  on 2 df,   p=0.1874
+    ## Score (logrank) test = 3.4  on 2 df,   p=0.1826
+
+``` r
 # non-prop hazards
 cox.zph(mph3, transform = log)
 ```
@@ -148,7 +172,35 @@ lines(lowess(mph3.X[, 1], mph3.martin, iter=0))
 
 ``` r
 mph3a <- update(mph1, . ~ . + level_of_cellularity)
+summary(mph3a)
+```
 
+    ## Call:
+    ## survival::coxph(formula = Surv(time = donor_survival_time, event = event) ~ 
+    ##     tumour_stage + level_of_cellularity, data = md)
+    ## 
+    ##   n= 69, number of events= 57 
+    ##    (6 observations deleted due to missingness)
+    ## 
+    ##                               coef exp(coef) se(coef)      z Pr(>|z|)  
+    ## tumour_stageIV             -0.6249    0.5353   0.4388 -1.424   0.1544  
+    ## level_of_cellularity41-60%  0.5012    1.6506   0.6066  0.826   0.4087  
+    ## level_of_cellularity61-80% -0.6091    0.5438   0.3045 -2.001   0.0454 *
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ##                            exp(coef) exp(-coef) lower .95 upper .95
+    ## tumour_stageIV                0.5353     1.8681    0.2265    1.2651
+    ## level_of_cellularity41-60%    1.6506     0.6058    0.5027    5.4196
+    ## level_of_cellularity61-80%    0.5438     1.8388    0.2994    0.9877
+    ## 
+    ## Concordance= 0.565  (se = 0.04 )
+    ## Rsquare= 0.097   (max possible= 0.997 )
+    ## Likelihood ratio test= 7.02  on 3 df,   p=0.07116
+    ## Wald test            = 6.73  on 3 df,   p=0.08117
+    ## Score (logrank) test = 6.96  on 3 df,   p=0.07331
+
+``` r
 # non-prop hazards
 cox.zph(mph3a, transform = log)
 ```
@@ -353,10 +405,10 @@ cox.zph(mph4e, transform = log)
 
 The above suggests we should now stratify by tumour-stage
 
-Update our analysis to use the stratified analysis
+### Update our analysis to use the stratified analysis
 
 ``` r
-(mph4s <- update(mph0, . ~ . + strata(tumour_stage) + percentage_cellularity + mutations_excl))
+summary(mph4s <- update(mph0, . ~ . + strata(tumour_stage) + percentage_cellularity + mutations_excl))
 ```
 
     ## Call:
@@ -364,13 +416,22 @@ Update our analysis to use the stratified analysis
     ##     strata(tumour_stage) + percentage_cellularity + mutations_excl, 
     ##     data = md)
     ## 
-    ##                             coef exp(coef)  se(coef)     z    p
-    ## percentage_cellularity  2.20e-02  1.02e+00  1.47e-02  1.50 0.13
-    ## mutations_excl         -5.64e-05  1.00e+00  4.49e-05 -1.25 0.21
-    ## 
-    ## Likelihood ratio test=3.6  on 2 df, p=0.165
-    ## n= 68, number of events= 56 
+    ##   n= 68, number of events= 56 
     ##    (7 observations deleted due to missingness)
+    ## 
+    ##                              coef  exp(coef)   se(coef)      z Pr(>|z|)
+    ## percentage_cellularity  2.202e-02  1.022e+00  1.469e-02  1.499    0.134
+    ## mutations_excl         -5.637e-05  9.999e-01  4.492e-05 -1.255    0.210
+    ## 
+    ##                        exp(coef) exp(-coef) lower .95 upper .95
+    ## percentage_cellularity    1.0223     0.9782    0.9932     1.052
+    ## mutations_excl            0.9999     1.0001    0.9999     1.000
+    ## 
+    ## Concordance= 0.589  (se = 0.049 )
+    ## Rsquare= 0.052   (max possible= 0.994 )
+    ## Likelihood ratio test= 3.6  on 2 df,   p=0.165
+    ## Wald test            = 3.5  on 2 df,   p=0.1741
+    ## Score (logrank) test = 3.51  on 2 df,   p=0.1729
 
 Test for non-prop hazards
 
@@ -430,7 +491,7 @@ title('Test for nonlinear effect', outer = T)
 ### How does the model look if we use the binned cellularity data?
 
 ``` r
-(mph5 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + mutations_excl))
+summary(mph5 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + mutations_excl))
 ```
 
     ## Call:
@@ -438,14 +499,30 @@ title('Test for nonlinear effect', outer = T)
     ##     strata(tumour_stage) + level_of_cellularity + mutations_excl, 
     ##     data = md)
     ## 
-    ##                                 coef exp(coef)  se(coef)     z     p
-    ## level_of_cellularity41-60%  3.70e-01  1.45e+00  6.12e-01  0.60 0.546
-    ## level_of_cellularity61-80% -6.72e-01  5.11e-01  3.07e-01 -2.19 0.029
-    ## mutations_excl             -5.68e-05  1.00e+00  4.57e-05 -1.24 0.214
-    ## 
-    ## Likelihood ratio test=7.14  on 3 df, p=0.0675
-    ## n= 68, number of events= 56 
+    ##   n= 68, number of events= 56 
     ##    (7 observations deleted due to missingness)
+    ## 
+    ##                                  coef  exp(coef)   se(coef)      z
+    ## level_of_cellularity41-60%  3.700e-01  1.448e+00  6.123e-01  0.604
+    ## level_of_cellularity61-80% -6.722e-01  5.106e-01  3.073e-01 -2.188
+    ## mutations_excl             -5.682e-05  9.999e-01  4.572e-05 -1.243
+    ##                            Pr(>|z|)  
+    ## level_of_cellularity41-60%   0.5457  
+    ## level_of_cellularity61-80%   0.0287 *
+    ## mutations_excl               0.2139  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ##                            exp(coef) exp(-coef) lower .95 upper .95
+    ## level_of_cellularity41-60%    1.4477     0.6907    0.4360    4.8072
+    ## level_of_cellularity61-80%    0.5106     1.9585    0.2796    0.9324
+    ## mutations_excl                0.9999     1.0001    0.9999    1.0000
+    ## 
+    ## Concordance= 0.582  (se = 0.049 )
+    ## Rsquare= 0.1   (max possible= 0.994 )
+    ## Likelihood ratio test= 7.14  on 3 df,   p=0.06749
+    ## Wald test            = 6.88  on 3 df,   p=0.07589
+    ## Score (logrank) test = 7.09  on 3 df,   p=0.06907
 
 ``` r
 # non-prop hazards
@@ -492,7 +569,7 @@ for (j in 1:2) {
 ### How does the model look if we use the log-cellularity data?
 
 ``` r
-(mph5b <- update(mph0, . ~ . + strata(tumour_stage) + log1p(percentage_cellularity) + mutations_excl))
+summary(mph5b <- update(mph0, . ~ . + strata(tumour_stage) + log1p(percentage_cellularity) + mutations_excl))
 ```
 
     ## Call:
@@ -500,13 +577,25 @@ for (j in 1:2) {
     ##     strata(tumour_stage) + log1p(percentage_cellularity) + mutations_excl, 
     ##     data = md)
     ## 
-    ##                                    coef exp(coef)  se(coef)     z    p
-    ## log1p(percentage_cellularity)  1.49e+00  4.42e+00  1.14e+00  1.31 0.19
-    ## mutations_excl                -5.55e-05  1.00e+00  4.50e-05 -1.23 0.22
-    ## 
-    ## Likelihood ratio test=3.06  on 2 df, p=0.216
-    ## n= 68, number of events= 56 
+    ##   n= 68, number of events= 56 
     ##    (7 observations deleted due to missingness)
+    ## 
+    ##                                     coef  exp(coef)   se(coef)      z
+    ## log1p(percentage_cellularity)  1.487e+00  4.424e+00  1.139e+00  1.306
+    ## mutations_excl                -5.553e-05  9.999e-01  4.501e-05 -1.234
+    ##                               Pr(>|z|)
+    ## log1p(percentage_cellularity)    0.192
+    ## mutations_excl                   0.217
+    ## 
+    ##                               exp(coef) exp(-coef) lower .95 upper .95
+    ## log1p(percentage_cellularity)    4.4235     0.2261    0.4746     41.23
+    ## mutations_excl                   0.9999     1.0001    0.9999      1.00
+    ## 
+    ## Concordance= 0.587  (se = 0.049 )
+    ## Rsquare= 0.044   (max possible= 0.994 )
+    ## Likelihood ratio test= 3.06  on 2 df,   p=0.2164
+    ## Wald test            = 2.94  on 2 df,   p=0.2302
+    ## Score (logrank) test = 2.95  on 2 df,   p=0.2289
 
 ``` r
 # non-prop hazards
@@ -549,21 +638,33 @@ Analysis of neoantigens (peptides)
 ----------------------------------
 
 ``` r
-(mph6 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + peptides))
+summary(mph6 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + peptides))
 ```
 
     ## Call:
     ## survival::coxph(formula = Surv(time = donor_survival_time, event = event) ~ 
     ##     strata(tumour_stage) + level_of_cellularity + peptides, data = md)
     ## 
-    ##                                coef exp(coef) se(coef)     z     p
-    ## level_of_cellularity41-60%  0.48940   1.63133  0.61508  0.80 0.426
-    ## level_of_cellularity61-80% -0.61428   0.54103  0.30543 -2.01 0.044
-    ## peptides                   -0.00224   0.99776  0.00150 -1.49 0.136
-    ## 
-    ## Likelihood ratio test=8.26  on 3 df, p=0.0409
-    ## n= 69, number of events= 57 
+    ##   n= 69, number of events= 57 
     ##    (6 observations deleted due to missingness)
+    ## 
+    ##                                 coef exp(coef)  se(coef)      z Pr(>|z|)  
+    ## level_of_cellularity41-60%  0.489395  1.631329  0.615083  0.796   0.4262  
+    ## level_of_cellularity61-80% -0.614280  0.541030  0.305428 -2.011   0.0443 *
+    ## peptides                   -0.002239  0.997763  0.001502 -1.490   0.1361  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ##                            exp(coef) exp(-coef) lower .95 upper .95
+    ## level_of_cellularity41-60%    1.6313      0.613    0.4886    5.4463
+    ## level_of_cellularity61-80%    0.5410      1.848    0.2973    0.9845
+    ## peptides                      0.9978      1.002    0.9948    1.0007
+    ## 
+    ## Concordance= 0.594  (se = 0.049 )
+    ## Rsquare= 0.113   (max possible= 0.994 )
+    ## Likelihood ratio test= 8.26  on 3 df,   p=0.0409
+    ## Wald test            = 7.68  on 3 df,   p=0.05313
+    ## Score (logrank) test = 7.94  on 3 df,   p=0.0473
 
 non-prop hazards?
 
@@ -606,4 +707,4 @@ for (j in 1:2) {
 
 ![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/nonlin-neoant-1.png)
 
-this confirms that we should probably drop this observation with very high mutation count.
+This confirms that we should probably drop this observation with very high mutation count.

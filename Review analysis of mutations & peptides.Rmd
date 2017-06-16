@@ -119,6 +119,7 @@ title('testing for influential observations', outer = T)
 
 ```{r checking-tumour-stage-cellularity}
 mph3 <- update(mph1, . ~ . + percentage_cellularity)
+summary(mph3)
 
 # non-prop hazards
 cox.zph(mph3, transform = log)
@@ -146,6 +147,7 @@ lines(lowess(mph3.X[, 1], mph3.martin, iter=0))
 
 ```{r checking-tumour-stage-lcellularity}
 mph3a <- update(mph1, . ~ . + level_of_cellularity)
+summary(mph3a)
 
 # non-prop hazards
 cox.zph(mph3a, transform = log)
@@ -243,10 +245,10 @@ cox.zph(mph4e, transform = log)
 
 The above suggests we should now stratify by tumour-stage
 
-Update our analysis to use the stratified analysis
+### Update our analysis to use the stratified analysis
 
 ```{r coxph-mut-e-s}
-(mph4s <- update(mph0, . ~ . + strata(tumour_stage) + percentage_cellularity + mutations_excl))
+summary(mph4s <- update(mph0, . ~ . + strata(tumour_stage) + percentage_cellularity + mutations_excl))
 ```
 
 Test for non-prop hazards
@@ -287,7 +289,7 @@ title('Test for nonlinear effect', outer = T)
 ### How does the model look if we use the binned cellularity data?
 
 ```{r analysis-mut-e-s-binnes}
-(mph5 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + mutations_excl))
+summary(mph5 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + mutations_excl))
 ```
 
 ```{r zph-mut-e-s-b}
@@ -322,7 +324,7 @@ for (j in 1:2) {
 ### How does the model look if we use the log-cellularity data?
 
 ```{r analysis-mut-e-s-log}
-(mph5b <- update(mph0, . ~ . + strata(tumour_stage) + log1p(percentage_cellularity) + mutations_excl))
+summary(mph5b <- update(mph0, . ~ . + strata(tumour_stage) + log1p(percentage_cellularity) + mutations_excl))
 ```
 
 ```{r zph-mut-e-s-l}
@@ -356,7 +358,7 @@ for (j in 1:2) {
 ## Analysis of neoantigens (peptides)
 
 ```{r coxph-neoant}
-(mph6 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + peptides))
+summary(mph6 <- update(mph0, . ~ . + strata(tumour_stage) + level_of_cellularity + peptides))
 ```
 
 
@@ -391,7 +393,7 @@ for (j in 1:2) {
 }
 ```
 
-this confirms that we should probably drop this observation with very high mutation count.
+This confirms that we should probably drop this observation with very high mutation count.
 
 
 
