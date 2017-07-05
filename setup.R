@@ -1,3 +1,4 @@
+options(repos = c(cran = 'https://cran.rstudio.com'))
 install.packages('tidyverse')
 install.packages('readr') 
 install.packages('survival')
