@@ -2,7 +2,9 @@
 title: "Hierarchical Analysis of Mutation Burden"
 author: "Jacqueline Buros Novik"
 date: "7/5/2017"
-output: github_document
+output: 
+  - github_document
+  - pdf_document
 ---
 
 # Supplemental Notebook 1 
