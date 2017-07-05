@@ -407,8 +407,8 @@ summary(mph7 <- update(mph0, . ~ . + level_of_cellularity + strata(tumour_stage)
 ```
 
 ```{r}
-summary(mph7 <- update(mph0, ~ . + level_of_cellularity + strat(tumour_stage) + mutations_excl + peptides))
-summary(mph7v2 <- update(mph0, ~ . + level_of_cellularity + strat(tumour_stage) + I(mutations_excl + peptides)))
+summary(mph7 <- update(mph0, ~ . + level_of_cellularity + strata(tumour_stage) + mutations_excl + peptides))
+summary(mph7v2 <- update(mph0, ~ . + level_of_cellularity + strata(tumour_stage) + I(mutations_excl + peptides)))
 anova(mph7, mph7v2)
 ```
 

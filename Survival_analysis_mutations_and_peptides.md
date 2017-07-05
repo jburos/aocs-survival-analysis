@@ -13,7 +13,7 @@ update(m0, . ~ . + tumour_stage, data = md) %>%
   survminer::ggsurvplot(., risk.table = TRUE, conf.int = TRUE) 
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/plot-tumour-stage-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/plot-tumour-stage-1.png)
 
 Fit coxph model
 
@@ -69,11 +69,25 @@ mph1.dfbeta <- residuals(mph1, type="dfbeta")
 plot(mph1.dfbeta)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/influence-tumour-stage-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/influence-tumour-stage-1.png)
 
 This caused me to wonder why some of these were so strongly negative -- is there heterogeneity in assessment of tumour stage?
 
-Did some looking at tumour-grade & percentage cellularity, which didn't modify the influence of these observations. Also tried to look at larger (ascites / treated/relapse) data to see if there was selection bias, but some key variables were missing for those datapoints and so I ultimately decided this was probably OK as-is.
+Did some looking at tumour-grade & percentage cellularity, which didn't modify the influence of these observations. Also tried to look at larger (ascites / treated/relapse) data to see if there was selection bias, but tumor-stage data were missing for too many of these combinations and so I ultimately decided this was probably OK as-is.
+
+``` r
+d %>% dplyr::distinct(specific_treatment, tissue_type, tumour_stage)
+```
+
+    ## # A tibble: 6 x 3
+    ##   tumour_stage tissue_type specific_treatment
+    ##          <chr>       <chr>              <chr>
+    ## 1          III       solid  primary/untreated
+    ## 2         <NA>     ascites    relapse/treated
+    ## 3           IV       solid  primary/untreated
+    ## 4          III       solid    primary/treated
+    ## 5         <NA>     ascites  primary/untreated
+    ## 6         <NA>       solid    relapse/treated
 
 (code used to check for addition of tumour-stage)
 
@@ -98,7 +112,7 @@ for (j in 1:2) {
 title('testing for influential observations', outer = T)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/checking-tumour-stage-grade-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/checking-tumour-stage-grade-1.png)
 
 (code used to check for addition of tumour-stage)
 
@@ -149,7 +163,7 @@ for (j in 1:2) {
 title('testing for influential observations', outer = T)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/checking-tumour-stage-cellularity-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/checking-tumour-stage-cellularity-1.png)
 
 ``` r
 dev.off() ## reset plot area
@@ -222,7 +236,7 @@ for (j in 1:3) {
 title('testing for influential observations', outer = T)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/checking-tumour-stage-lcellularity-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/checking-tumour-stage-lcellularity-1.png)
 
 ``` r
 dev.off() ## reset plot area
@@ -306,7 +320,7 @@ for (j in 1:3) {
 title('test for influential observations', outer = T)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/infl-mutations-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/infl-mutations-1.png)
 
 Seems likely the above is the observation with v high mutation count.
 
@@ -322,7 +336,7 @@ for (j in 1:2) {
 title('test for non-linearity of effect', outer = T)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/nonlin-mutations-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/nonlin-mutations-1.png)
 
 ``` r
 # this confirms that we should probably drop this observation with very high mutation count
@@ -336,7 +350,7 @@ update(m0, . ~ . + mutations_above_median, data = md) %>%
   survminer::ggsurvplot(., risk.table = TRUE, conf.int = TRUE, pval = TRUE)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/km1-mutations-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/km1-mutations-1.png)
 
 Plot KM estimate by mutation count &lt;&gt; p75
 
@@ -345,7 +359,7 @@ update(m0, . ~ . + mutations_above_p75, data = md) %>%
   survminer::ggsurvplot(., risk.table = TRUE, conf.int = TRUE, pval = TRUE)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/km2-mutations-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/km2-mutations-1.png)
 
 Analysis of mutations excluding v high counts
 ---------------------------------------------
@@ -466,7 +480,7 @@ for (j in 1:2) {
 title('test for influenctial observations', outer = T)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/inf-mut-e-s-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/inf-mut-e-s-1.png)
 
 Non-linearity of effects
 
@@ -482,7 +496,7 @@ for (j in 1:2) {
 title('Test for nonlinear effect', outer = T)
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/nonlin-mut-e-s-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/nonlin-mut-e-s-1.png)
 
 ``` r
 # this confirms that we should probably drop this observation with very high mutation count
@@ -545,7 +559,7 @@ for (j in 1:length(coef(mph5))) {
 }
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/infl-mut-e-s-b-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/infl-mut-e-s-b-1.png)
 
 non-linearity?
 
@@ -560,7 +574,7 @@ for (j in 1:2) {
 }
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/nonlin-mut-e-s-b-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/nonlin-mut-e-s-b-1.png)
 
 ``` r
 # this confirms that we should probably drop this observation with very high mutation count
@@ -617,7 +631,7 @@ for (j in 1:length(coef(mph5b))) {
 }
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/infl-mut-e-s-l-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/infl-mut-e-s-l-1.png)
 
 non-linearity?
 
@@ -632,7 +646,7 @@ for (j in 1:2) {
 }
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/nonlin-mut-e-s-l-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/nonlin-mut-e-s-l-1.png)
 
 Analysis of neoantigens (peptides)
 ----------------------------------
@@ -690,7 +704,7 @@ for (j in 1:length(coef(mph6))) {
 }
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/inf-neoant-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/inf-neoant-1.png)
 
 non-linearity?
 
@@ -705,6 +719,129 @@ for (j in 1:2) {
 }
 ```
 
-![](Review_analysis_of_mutations___peptides_files/figure-markdown_github-ascii_identifiers/nonlin-neoant-1.png)
+![](Survival_analysis_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/nonlin-neoant-1.png)
 
 This confirms that we should probably drop this observation with very high mutation count.
+
+Can we model neoantigens & mutation count effects?
+--------------------------------------------------
+
+``` r
+summary(mph7 <- update(mph0, . ~ . + level_of_cellularity + strata(tumour_stage) + mutations_excl + peptides))
+```
+
+    ## Call:
+    ## survival::coxph(formula = Surv(time = donor_survival_time, event = event) ~ 
+    ##     level_of_cellularity + strata(tumour_stage) + mutations_excl + 
+    ##         peptides, data = md)
+    ## 
+    ##   n= 68, number of events= 56 
+    ##    (7 observations deleted due to missingness)
+    ## 
+    ##                                  coef  exp(coef)   se(coef)      z
+    ## level_of_cellularity41-60%  6.282e-01  1.874e+00  6.406e-01  0.981
+    ## level_of_cellularity61-80% -5.356e-01  5.853e-01  3.215e-01 -1.666
+    ## mutations_excl              3.673e-05  1.000e+00  7.324e-05  0.501
+    ## peptides                   -3.879e-03  9.961e-01  2.470e-03 -1.570
+    ##                            Pr(>|z|)  
+    ## level_of_cellularity41-60%   0.3268  
+    ## level_of_cellularity61-80%   0.0957 .
+    ## mutations_excl               0.6161  
+    ## peptides                     0.1163  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ##                            exp(coef) exp(-coef) lower .95 upper .95
+    ## level_of_cellularity41-60%    1.8742     0.5336    0.5340     6.578
+    ## level_of_cellularity61-80%    0.5853     1.7085    0.3117     1.099
+    ## mutations_excl                1.0000     1.0000    0.9999     1.000
+    ## peptides                      0.9961     1.0039    0.9913     1.001
+    ## 
+    ## Concordance= 0.609  (se = 0.049 )
+    ## Rsquare= 0.132   (max possible= 0.994 )
+    ## Likelihood ratio test= 9.67  on 4 df,   p=0.04646
+    ## Wald test            = 8.8  on 4 df,   p=0.06623
+    ## Score (logrank) test = 9.12  on 4 df,   p=0.05811
+
+``` r
+summary(mph7 <- update(mph0, ~ . + level_of_cellularity + strata(tumour_stage) + mutations_excl + peptides))
+```
+
+    ## Call:
+    ## survival::coxph(formula = Surv(time = donor_survival_time, event = event) ~ 
+    ##     level_of_cellularity + strata(tumour_stage) + mutations_excl + 
+    ##         peptides, data = md)
+    ## 
+    ##   n= 68, number of events= 56 
+    ##    (7 observations deleted due to missingness)
+    ## 
+    ##                                  coef  exp(coef)   se(coef)      z
+    ## level_of_cellularity41-60%  6.282e-01  1.874e+00  6.406e-01  0.981
+    ## level_of_cellularity61-80% -5.356e-01  5.853e-01  3.215e-01 -1.666
+    ## mutations_excl              3.673e-05  1.000e+00  7.324e-05  0.501
+    ## peptides                   -3.879e-03  9.961e-01  2.470e-03 -1.570
+    ##                            Pr(>|z|)  
+    ## level_of_cellularity41-60%   0.3268  
+    ## level_of_cellularity61-80%   0.0957 .
+    ## mutations_excl               0.6161  
+    ## peptides                     0.1163  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ##                            exp(coef) exp(-coef) lower .95 upper .95
+    ## level_of_cellularity41-60%    1.8742     0.5336    0.5340     6.578
+    ## level_of_cellularity61-80%    0.5853     1.7085    0.3117     1.099
+    ## mutations_excl                1.0000     1.0000    0.9999     1.000
+    ## peptides                      0.9961     1.0039    0.9913     1.001
+    ## 
+    ## Concordance= 0.609  (se = 0.049 )
+    ## Rsquare= 0.132   (max possible= 0.994 )
+    ## Likelihood ratio test= 9.67  on 4 df,   p=0.04646
+    ## Wald test            = 8.8  on 4 df,   p=0.06623
+    ## Score (logrank) test = 9.12  on 4 df,   p=0.05811
+
+``` r
+summary(mph7v2 <- update(mph0, ~ . + level_of_cellularity + strata(tumour_stage) + I(mutations_excl + peptides)))
+```
+
+    ## Call:
+    ## survival::coxph(formula = Surv(time = donor_survival_time, event = event) ~ 
+    ##     level_of_cellularity + strata(tumour_stage) + I(mutations_excl + 
+    ##         peptides), data = md)
+    ## 
+    ##   n= 68, number of events= 56 
+    ##    (7 observations deleted due to missingness)
+    ## 
+    ##                                    coef  exp(coef)   se(coef)      z
+    ## level_of_cellularity41-60%    3.724e-01  1.451e+00  6.122e-01  0.608
+    ## level_of_cellularity61-80%   -6.710e-01  5.112e-01  3.071e-01 -2.185
+    ## I(mutations_excl + peptides) -5.670e-05  9.999e-01  4.469e-05 -1.269
+    ##                              Pr(>|z|)  
+    ## level_of_cellularity41-60%     0.5430  
+    ## level_of_cellularity61-80%     0.0289 *
+    ## I(mutations_excl + peptides)   0.2046  
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ##                              exp(coef) exp(-coef) lower .95 upper .95
+    ## level_of_cellularity41-60%      1.4512     0.6891    0.4372    4.8171
+    ## level_of_cellularity61-80%      0.5112     1.9562    0.2800    0.9333
+    ## I(mutations_excl + peptides)    0.9999     1.0001    0.9999    1.0000
+    ## 
+    ## Concordance= 0.582  (se = 0.049 )
+    ## Rsquare= 0.101   (max possible= 0.994 )
+    ## Likelihood ratio test= 7.22  on 3 df,   p=0.06533
+    ## Wald test            = 6.94  on 3 df,   p=0.07381
+    ## Score (logrank) test = 7.15  on 3 df,   p=0.06713
+
+``` r
+anova(mph7, mph7v2)
+```
+
+    ## Analysis of Deviance Table
+    ##  Cox model: response is  Surv(time = donor_survival_time, event = event)
+    ##  Model 1: ~ level_of_cellularity + strata(tumour_stage) + mutations_excl + peptides
+    ##  Model 2: ~ level_of_cellularity + strata(tumour_stage) + I(mutations_excl + peptides)
+    ##    loglik  Chisq Df P(>|Chi|)
+    ## 1 -170.54                    
+    ## 2 -171.76 2.4496  1    0.1176
