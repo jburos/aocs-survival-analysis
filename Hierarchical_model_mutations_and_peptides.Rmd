@@ -1,0 +1,196 @@
+---
+title: "Hierarchical_model_mutations_and_peptides.Rmd"
+author: "Jacqueline Buros Novik"
+date: "7/5/2017"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warnings = FALSE)
+
+library(readr)     # load data
+library(tidyverse) # data manipulation
+library(rstanarm)  # bayesian model fits
+library(bayesplot) # plotting model results
+
+# load data
+data_url <- 'https://raw.githubusercontent.com/hammerlab/paper-aocs-chemo-neoantigens/master/additional-files/Additional%20File%201.csv'
+d <- readr::read_csv(data_url) 
+
+## modified or mutated data stored in md
+above_quantile <- function(x, q, ...) {
+  x > quantile(x, probs = q, ...)
+}
+
+above_quantile_str <- function(x, q, ...) {
+  threshold <- as.integer(quantile(x, probs = q, ...))
+  ifelse(x > threshold, stringr::str_c('>', threshold), stringr::str_c('<=', threshold))
+}
+
+md <- d %>%
+  tidyr::drop_na(mutations, peptides)
+
+md_primary_solid <- md %>%
+  dplyr::filter(tissue_type == 'solid' & timepoint == 'primary')
+
+```
+
+## Summarize data
+
+In this analysis we will be looking at how the number of `mutations` & `peptides` (predicted neoantigens) varies with the sample type (solid / ascites) and timing of acquisition (relapse / primary and treated / untreated).
+
+```{r plot-data}
+ggplot(md, aes(x = mutations_per_mb, fill = specific_treatment)) + 
+  facet_wrap(~tissue_type) +
+  geom_histogram(position = 'dodge') +
+  theme_minimal()
+```
+
+How many observations do we have for each of these categories?
+
+```{r tally-data}
+md %>%
+  group_by(tissue_type, treatment, timepoint) %>%
+  tally() %>%
+  tidyr::spread(key = tissue_type, value = n, fill = 0)
+```
+
+Strikes me that the "recurrent" timepoint is problematic in this analysis, since we don't have any untreated/recurent samples & so cannot separate effect of recurrence from that of treatment. 
+
+Instead, we can look at `solid` samples only, among those collected at the primary timepoint comparing treated to untreated samples. My guess is, many of these might be the paired samples. 
+
+We can then include the treated / recurrence using only solid samples, although my guess is in this case we will see a higher rate of mutations among recurrence samples than among primary/treated.
+
+Only after these effects are well established should we turn to the ascites samples, to see if the difference between untreated/primary & treated/relapse is consisent with that seen in solid samples.
+
+## Restricting to primary, solid samples
+
+We now have `r print(md_primary_solid %>% tally() %>% unlist())` samples, `r print(md_primary_solid %>% dplyr::filter(treatment == 'treatment naive') %>% tally())` are treatment-naive.
+
+Let's review how these metrics are distributed in this subset of our samples. First we note that the maximum number of samples per donor in this subset of our data is `r print(md_primary_solid %>% group_by(donor) %>% dplyr::tally() %>% dplyr::summarize(max(n)) %>% unlist())`, meaning we have no duplicate samples.
+
+Here, looking at metrics among all primary, solid samples irrespective of treatment:
+
+```{r psolid-review-dist}
+ggplot(md_primary_solid %>%
+         tidyr::gather(value = 'value', key = 'variable', mutations, mutations_per_mb, peptides), aes(x = value)) + 
+  geom_density() + 
+  theme_minimal() + 
+  facet_wrap(~variable, scale = 'free')
+```
+
+These numbers are not exactly normally-distributed. 
+
+Perhaps using a log-transformed value?
+
+```{r psolid-review-dist-log}
+ggplot(md_primary_solid %>%
+         tidyr::gather(value = 'value', key = 'variable', mutations, mutations_per_mb, peptides),
+       aes(x = log1p(value))) + 
+  geom_density() + 
+  theme_minimal() + 
+  facet_wrap(~variable, scale = 'free')
+```
+
+```{r psolid-review-dist-log-by-trt}
+ggplot(md_primary_solid %>%
+         tidyr::gather(value = 'value', key = 'variable', mutations, mutations_per_mb, peptides),
+       aes(x = log1p(value), fill = treatment)) + 
+  geom_density(alpha = 0.4) + 
+  theme_minimal() + 
+  facet_wrap(~variable, scale = 'free')
+```
+
+What is noticeable here is that, given the small number of treated samples, it is very hard to tell graphically whether there is any difference in the two distributions.
+
+Let's try fitting a model to these data.
+
+```{r psolid-glm-model}
+trt1 <- rstanarm::stan_glm(log1p(mutations) ~ treatment,
+                           data = md_primary_solid
+                           )
+trt1
+```
+
+This suggests the treatment effect on number of mutations may be relatively modest, with a median effect indicating that the average mutation count among treatment naive samples would be 20% higher than that among chemo-treated samples (with a relatively wide posterior interval). 
+
+```{r psolid-trt-effect}
+bayesplot::mcmc_areas(as.array(trt1), pars = 'treatmenttreatment naive')
+```
+
+How well do this model's predictions match our data?
+
+```{r psolid-trt-ppvalues}
+trt1.ppred <- rstanarm::predictive_interval(trt1) %>%
+  tbl_df(.)
+trt1.median <- rstanarm::predictive_interval(trt1, 0.01) %>%
+  tbl_df(.) %>%
+  dplyr::mutate(median = (`49.5%` + `50.5%`)/2) %>%
+  dplyr::select(median)
+
+md_primary_solid2 <- 
+  md_primary_solid %>% 
+  dplyr::bind_cols(trt1.ppred) %>%
+  dplyr::bind_cols(trt1.median)
+```
+
+```{r psolid-trt-ppred}
+ggplot(md_primary_solid2, aes(x = treatment, y = log1p(mutations))) + 
+  geom_jitter() +
+  geom_errorbar(aes(x = treatment, ymin = `5%`, ymax = `95%`),
+                data = md_primary_solid2 %>% dplyr::distinct(treatment, .keep_all=T),
+                colour = 'red', alpha = 0.5)
+```
+
+How well does our model recover the observed distributions of variables?
+
+```{r psolid-glm-ppcheck}
+bayesplot::pp_check(trt1)
+```
+
+Not bad .. 
+
+What if we tried a negative-binomial model instead?
+
+```{r psolid-glmnb-model}
+trt1nb <- rstanarm::stan_glm(mutations ~ treatment,
+                             data = md_primary_solid,
+                             family = neg_binomial_2()
+)
+trt1nb
+```
+
+(notice that here we have almost identical parameter estimates)
+
+```{r psolid-glmnb-ppcheck}
+bayesplot::pp_check(trt1nb)
+```
+
+Here we have a slightly better fit, but not by much. Consistent with theory, the log-transform works well as an approximation to the 'counting process' at high levels of the counts.
+
+## Looking at mutations per number of cycles
+
+Next we look at estimating the effects of number of cycles on mutation count. 
+
+```{r psolid-mvtrt}
+trt2 <- rstanarm::stan_glm(log1p(mutations) ~ treatment + `total cycles`,
+                           data = md_primary_solid %>%
+                             dplyr::mutate(no_treatment = ifelse(treatment == 'treatment naive', 1, 0),
+                                           treatment = ifelse(treatment != 'treatment naive', 1, 0))
+                           )
+trt2
+```
+
+
+```{r psolid-mvtrt-coefs}
+bayesplot::mcmc_areas(as.array(trt2), pars = c('treatment', '`total cycles`'))
+```
+
+The interpretation of these results would be that : 
+
+1. Samples that received treatment have higher average mutation count than samples that are treatment-naive
+2. Among those receiving treatment, those with more cycles tended to have lower mutation count
+
+This may or may not make biological sense (to me it feels like a stretch), and the posterior distributions of effects are all pretty broad. So my inclination would be to judge these effects as being "within the noise".
+
+
