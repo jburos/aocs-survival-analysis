@@ -95,111 +95,9 @@ Let's try fitting a model to these data.
 
 ``` r
 trt1 <- rstanarm::stan_glm(log1p(mutations) ~ treatment,
-                           data = md_primary_solid
+                           data = md_primary_solid,
+                           seed = stan_seed
                            )
-```
-
-    ## 
-    ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 1).
-    ## 
-    ## Gradient evaluation took 7.5e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.75 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.07076 seconds (Warm-up)
-    ##                0.074404 seconds (Sampling)
-    ##                0.145164 seconds (Total)
-    ## 
-    ## 
-    ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 2).
-    ## 
-    ## Gradient evaluation took 1.7e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.17 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.071135 seconds (Warm-up)
-    ##                0.061818 seconds (Sampling)
-    ##                0.132953 seconds (Total)
-    ## 
-    ## 
-    ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 3).
-    ## 
-    ## Gradient evaluation took 2.3e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.23 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.06279 seconds (Warm-up)
-    ##                0.071801 seconds (Sampling)
-    ##                0.134591 seconds (Total)
-    ## 
-    ## 
-    ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 4).
-    ## 
-    ## Gradient evaluation took 1.6e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.16 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.063215 seconds (Warm-up)
-    ##                0.064264 seconds (Sampling)
-    ##                0.127479 seconds (Total)
-
-``` r
 trt1
 ```
 
@@ -266,116 +164,16 @@ bayesplot::pp_check(trt1)
 
 Not bad ..
 
+### Try a negative-binomial model?
+
 What if we tried a negative-binomial model instead?
 
 ``` r
 trt1nb <- rstanarm::stan_glm(mutations ~ treatment,
                              data = md_primary_solid,
-                             family = neg_binomial_2()
+                             family = neg_binomial_2(),
+                             seed = stan_seed
 )
-```
-
-    ## 
-    ## SAMPLING FOR MODEL 'count' NOW (CHAIN 1).
-    ## 
-    ## Gradient evaluation took 9.9e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.99 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.399437 seconds (Warm-up)
-    ##                0.347072 seconds (Sampling)
-    ##                0.746509 seconds (Total)
-    ## 
-    ## 
-    ## SAMPLING FOR MODEL 'count' NOW (CHAIN 2).
-    ## 
-    ## Gradient evaluation took 7.4e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.74 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.350747 seconds (Warm-up)
-    ##                0.320644 seconds (Sampling)
-    ##                0.671391 seconds (Total)
-    ## 
-    ## 
-    ## SAMPLING FOR MODEL 'count' NOW (CHAIN 3).
-    ## 
-    ## Gradient evaluation took 9.7e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.97 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.348283 seconds (Warm-up)
-    ##                0.317825 seconds (Sampling)
-    ##                0.666108 seconds (Total)
-    ## 
-    ## 
-    ## SAMPLING FOR MODEL 'count' NOW (CHAIN 4).
-    ## 
-    ## Gradient evaluation took 7.8e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.78 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.32753 seconds (Warm-up)
-    ##                0.329492 seconds (Sampling)
-    ##                0.657022 seconds (Total)
-
-``` r
 trt1nb
 ```
 
@@ -393,7 +191,7 @@ trt1nb
     ## Sample avg. posterior predictive 
     ## distribution of y (X = xbar):
     ##          Median MAD_SD
-    ## mean_PPD 7822.5  599.3
+    ## mean_PPD 7777.7  612.2
     ## 
     ## ------
     ## For info on the priors used see help('prior_summary.stanreg').
@@ -408,10 +206,9 @@ bayesplot::pp_check(trt1nb)
 
 Here we have a slightly better fit, but not by much. Consistent with theory, the log-transform works well as an approximation to the 'counting process' at high levels of the counts.
 
-Looking at mutations per number of cycles
------------------------------------------
+### Adjust for number of cycles?
 
-Next we look at estimating the effects of number of cycles on mutation count.
+Next we look at estimating the effects of number of cycles on mutation count. Sometimes adding more information can address noise in the model, and sometimes it just .. adds noise.
 
 ``` r
 trt2 <- rstanarm::stan_glm(log1p(mutations) ~ treatment + `total cycles`,
@@ -419,109 +216,6 @@ trt2 <- rstanarm::stan_glm(log1p(mutations) ~ treatment + `total cycles`,
                              dplyr::mutate(no_treatment = ifelse(treatment == 'treatment naive', 1, 0),
                                            treatment = ifelse(treatment != 'treatment naive', 1, 0))
                            )
-```
-
-    ## 
-    ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 1).
-    ## 
-    ## Gradient evaluation took 2.2e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.22 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.193695 seconds (Warm-up)
-    ##                0.23725 seconds (Sampling)
-    ##                0.430945 seconds (Total)
-    ## 
-    ## 
-    ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 2).
-    ## 
-    ## Gradient evaluation took 2e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.2 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.222261 seconds (Warm-up)
-    ##                0.262979 seconds (Sampling)
-    ##                0.48524 seconds (Total)
-    ## 
-    ## 
-    ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 3).
-    ## 
-    ## Gradient evaluation took 5.1e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.51 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.195576 seconds (Warm-up)
-    ##                0.222166 seconds (Sampling)
-    ##                0.417742 seconds (Total)
-    ## 
-    ## 
-    ## SAMPLING FOR MODEL 'continuous' NOW (CHAIN 4).
-    ## 
-    ## Gradient evaluation took 2e-05 seconds
-    ## 1000 transitions using 10 leapfrog steps per transition would take 0.2 seconds.
-    ## Adjust your expectations accordingly!
-    ## 
-    ## 
-    ## Iteration:    1 / 2000 [  0%]  (Warmup)
-    ## Iteration:  200 / 2000 [ 10%]  (Warmup)
-    ## Iteration:  400 / 2000 [ 20%]  (Warmup)
-    ## Iteration:  600 / 2000 [ 30%]  (Warmup)
-    ## Iteration:  800 / 2000 [ 40%]  (Warmup)
-    ## Iteration: 1000 / 2000 [ 50%]  (Warmup)
-    ## Iteration: 1001 / 2000 [ 50%]  (Sampling)
-    ## Iteration: 1200 / 2000 [ 60%]  (Sampling)
-    ## Iteration: 1400 / 2000 [ 70%]  (Sampling)
-    ## Iteration: 1600 / 2000 [ 80%]  (Sampling)
-    ## Iteration: 1800 / 2000 [ 90%]  (Sampling)
-    ## Iteration: 2000 / 2000 [100%]  (Sampling)
-    ## 
-    ##  Elapsed Time: 0.205451 seconds (Warm-up)
-    ##                0.217294 seconds (Sampling)
-    ##                0.422745 seconds (Total)
-
-``` r
 trt2
 ```
 
@@ -533,7 +227,7 @@ trt2
     ## Estimates:
     ##                Median MAD_SD
     ## (Intercept)     8.9    0.1  
-    ## treatment       1.1    0.8  
+    ## treatment       1.0    0.8  
     ## `total cycles` -0.2    0.1  
     ## sigma           0.5    0.0  
     ## 
@@ -544,6 +238,8 @@ trt2
     ## 
     ## ------
     ## For info on the priors used see help('prior_summary.stanreg').
+
+Let's plot the distributions around these effects
 
 ``` r
 bayesplot::mcmc_areas(as.array(trt2), pars = c('treatment', '`total cycles`'))
@@ -557,3 +253,289 @@ The interpretation of these results would be that :
 2.  Among those receiving treatment, those with more cycles tended to have lower mutation count
 
 This may or may not make biological sense (to me it feels like a stretch), and the posterior distributions of effects are all pretty broad. So my inclination would be to judge these effects as being "within the noise".
+
+### Use a varying-intercept effect?
+
+Before moving on to include solid/relapse/treated & ascites samples, we fit the same model using a varying-coefficient structure. We do this because this is the type of model we will fit in later iterations and so it will be helpful to have a baseline here to compare against.
+
+This model is structurally very similar to fitting a no-intercept model, with formula `mutations ~ 0 + treatment`, which would estimate separate mean numbers of mutations among treated & naive solid primary samples. The difference is that, in this formulation, the treatment-specific means are drawn from a higher-level distribution of means which acts like a prior for the group-specific means, and which in effect regularizes the treatment & non-treatment means -- the group-specific means end up shrinking towards an overall inter-group mean.
+
+``` r
+trt3 <- rstanarm::stan_glmer(log1p(mutations) ~ (1 | treatment),
+                           data = md_primary_solid,
+                           adapt_delta = 0.999,
+                           seed = stan_seed
+                           )
+trt3
+```
+
+    ## stan_glmer
+    ##  family:  gaussian [identity]
+    ##  formula: log1p(mutations) ~ (1 | treatment)
+    ## ------
+    ## 
+    ## Estimates:
+    ##             Median MAD_SD
+    ## (Intercept) 8.8    0.2   
+    ## sigma       0.5    0.0   
+    ## 
+    ## Error terms:
+    ##  Groups    Name        Std.Dev.
+    ##  treatment (Intercept) 0.39    
+    ##  Residual              0.48    
+    ## Num. levels: treatment 2 
+    ## 
+    ## Sample avg. posterior predictive 
+    ## distribution of y (X = xbar):
+    ##          Median MAD_SD
+    ## mean_PPD 8.8    0.1   
+    ## 
+    ## ------
+    ## For info on the priors used see help('prior_summary.stanreg').
+
+The summary for this model does not include the group-specific means by default. We can, however, recover them quite easily.
+
+``` r
+bayesplot::mcmc_areas(as.array(trt3), regex_pars = '\\(Intercept\\) treatment\\:')
+```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-1-1.png)
+
+A textual summary can be accessed via `summary`:
+
+``` r
+summary(trt3)
+```
+
+    ## 
+    ## Model Info:
+    ## 
+    ##  function:  stan_glmer
+    ##  family:    gaussian [identity]
+    ##  formula:   log1p(mutations) ~ (1 | treatment)
+    ##  algorithm: sampling
+    ##  priors:    see help('prior_summary')
+    ##  sample:    4000 (posterior sample size)
+    ##  num obs:   80
+    ##  groups:    treatment (2)
+    ## 
+    ## Estimates:
+    ##                                            mean   sd    2.5%   25%   50%
+    ## (Intercept)                                8.8    0.3   8.1    8.7   8.8
+    ## b[(Intercept) treatment:chemo_treated]     0.0    0.3  -0.7   -0.1   0.0
+    ## b[(Intercept) treatment:treatment_naive]   0.1    0.3  -0.5    0.0   0.0
+    ## sigma                                      0.5    0.0   0.4    0.5   0.5
+    ## Sigma[treatment:(Intercept),(Intercept)]   0.2    0.4   0.0    0.0   0.0
+    ## mean_PPD                                   8.8    0.1   8.7    8.8   8.8
+    ## log-posterior                            -67.2    2.0 -72.2  -68.2 -66.8
+    ##                                            75%   97.5%
+    ## (Intercept)                                8.9   9.3  
+    ## b[(Intercept) treatment:chemo_treated]     0.0   0.6  
+    ## b[(Intercept) treatment:treatment_naive]   0.2   0.8  
+    ## sigma                                      0.5   0.6  
+    ## Sigma[treatment:(Intercept),(Intercept)]   0.1   1.1  
+    ## mean_PPD                                   8.9   9.0  
+    ## log-posterior                            -65.7 -64.4  
+    ## 
+    ## Diagnostics:
+    ##                                          mcse Rhat n_eff
+    ## (Intercept)                              0.0  1.0   766 
+    ## b[(Intercept) treatment:chemo_treated]   0.0  1.0   891 
+    ## b[(Intercept) treatment:treatment_naive] 0.0  1.0   766 
+    ## sigma                                    0.0  1.0  2635 
+    ## Sigma[treatment:(Intercept),(Intercept)] 0.0  1.0  1473 
+    ## mean_PPD                                 0.0  1.0  4000 
+    ## log-posterior                            0.1  1.0  1220 
+    ## 
+    ## For each parameter, mcse is Monte Carlo standard error, n_eff is a crude measure of effective sample size, and Rhat is the potential scale reduction factor on split chains (at convergence Rhat=1).
+
+It's not surprising, here, that our effect has shrunken -- the mean `log1p(mutation)` count among treatment\_naive samples is 0.1 instead of 0.2. However the direction of effect is similar. Folks may reasonably disagree about which of these two results is more "correct", but the findings aren't inconsistent.
+
+At this point, we are ready to move on to a variation of this model that includes all solid samples, estimating effects of relapse & treatment separately.
+
+All solid tumor samples
+-----------------------
+
+Now we start to analyze a dataset including primary/untreated, primary/treated & relapse/treated samples.
+
+First we note that the maximum number of samples per donor in this subset of our data is , meaning we have a handful of duplicate samples per donor. We will adjust for this in our analysis.
+
+### Using a standard Bayesian glm
+
+First we fit a standard `glm` without any donor-specific adjustments.
+
+``` r
+strt1 <- rstanarm::stan_glm(log1p(mutations) ~ treatment + timepoint,
+                           data = md_solid, 
+                           adapt_delta = 0.999,
+                           seed = stan_seed
+                           )
+strt1
+```
+
+    ## stan_glm
+    ##  family:  gaussian [identity]
+    ##  formula: log1p(mutations) ~ treatment + timepoint
+    ## ------
+    ## 
+    ## Estimates:
+    ##                          Median MAD_SD
+    ## (Intercept)              8.7    0.2   
+    ## treatmenttreatment naive 0.2    0.2   
+    ## timepointrecurrence      0.8    0.3   
+    ## sigma                    0.5    0.0   
+    ## 
+    ## Sample avg. posterior predictive 
+    ## distribution of y (X = xbar):
+    ##          Median MAD_SD
+    ## mean_PPD 8.9    0.1   
+    ## 
+    ## ------
+    ## For info on the priors used see help('prior_summary.stanreg').
+
+Here, we see a similar treatment effect as in our earlier analysis (which is encouraging), but the estimated "recurrence" effect is somewhat higher than the treatment effect.
+
+How well are we recovering the distribution of our `log1p(mutation)` count in this sample?
+
+``` r
+bayesplot::pp_check(strt1)
+```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/allsolid-strt1-ppcheck-1.png)
+
+Pretty well.
+
+Let's fit this model with an adjustment for within-id similarity.
+
+``` r
+strt2 <- rstanarm::stan_glmer(log1p(mutations) ~ treatment + timepoint + (1 | donor),
+                           data = md_solid, 
+                           adapt_delta = 0.999,
+                           iter = 5000,
+                           seed = stan_seed
+                           )
+```
+
+    ## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+    ## http://mc-stan.org/misc/warnings.html#bfmi-low
+
+    ## Warning: Examine the pairs() plot to diagnose sampling problems
+
+``` r
+strt2
+```
+
+    ## stan_glmer
+    ##  family:  gaussian [identity]
+    ##  formula: log1p(mutations) ~ treatment + timepoint + (1 | donor)
+    ## ------
+    ## 
+    ## Estimates:
+    ##                          Median MAD_SD
+    ## (Intercept)              8.7    0.2   
+    ## treatmenttreatment naive 0.2    0.2   
+    ## timepointrecurrence      0.5    0.3   
+    ## sigma                    0.3    0.1   
+    ## 
+    ## Error terms:
+    ##  Groups   Name        Std.Dev.
+    ##  donor    (Intercept) 0.36    
+    ##  Residual             0.29    
+    ## Num. levels: donor 81 
+    ## 
+    ## Sample avg. posterior predictive 
+    ## distribution of y (X = xbar):
+    ##          Median MAD_SD
+    ## mean_PPD 8.9    0.0   
+    ## 
+    ## ------
+    ## For info on the priors used see help('prior_summary.stanreg').
+
+These findings are similar to those from the earlier model which did not adjust for duplicate samples per donor, although the effect is somewhat attenuated.
+
+``` r
+bayesplot::mcmc_areas(as.array(strt2), regex_pars = c('^treatment', '^timepoint'))
+```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/allsolid-strt2-coefplot-1.png)
+
+According to this model, we have an estimated average 50% increase in mutations for relapse samples, vs primary.
+
+The 95% credible intervals for this increase are:
+
+``` r
+rstanarm::posterior_interval(strt2, prob = 0.95, pars = c('timepointrecurrence'))
+```
+
+    ##                            2.5%    97.5%
+    ## timepointrecurrence -0.04411578 1.134112
+
+How much of this probability mass is &lt; 0?
+
+``` r
+mean(sapply(as.array(strt2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+    ## [1] 0.0337
+
+This number reflects the so-called 'bayesian p-value', IE the posterior probability of a relapse effect being &lt;= 0. Note that this would correspond to a one-sided p-value in traditional frequentist NHT framework.
+
+*Side note: this adjustment for `donor` only accounts for the fact that we'd expect two samples from the same donor to be more similar from one another than two samples from different donors. It does not estimate "varying-coefficients", ie relapse or treatment effects cannot vary by donor. All effects are estimated as population averages.*
+
+### Using a varying-coefficient model
+
+``` r
+strt3 <- rstanarm::stan_glmer(log1p(mutations) ~ treatment + timepoint + (1 + timepoint | donor),
+                           data = md_solid, 
+                           adapt_delta = 0.999,
+                           iter = 5000,
+                           seed = stan_seed
+                           )
+```
+
+    ## Warning: There were 34 divergent transitions after warmup. Increasing adapt_delta above 0.999 may help. See
+    ## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+
+    ## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+    ## http://mc-stan.org/misc/warnings.html#bfmi-low
+
+    ## Warning: Examine the pairs() plot to diagnose sampling problems
+
+``` r
+strt3
+```
+
+    ## stan_glmer
+    ##  family:  gaussian [identity]
+    ##  formula: log1p(mutations) ~ treatment + timepoint + (1 + timepoint | donor)
+    ## ------
+    ## 
+    ## Estimates:
+    ##                          Median MAD_SD
+    ## (Intercept)              8.7    0.2   
+    ## treatmenttreatment naive 0.2    0.2   
+    ## timepointrecurrence      0.5    0.4   
+    ## sigma                    0.3    0.1   
+    ## 
+    ## Error terms:
+    ##  Groups   Name                Std.Dev. Corr 
+    ##  donor    (Intercept)         0.36          
+    ##           timepointrecurrence 0.31     -0.08
+    ##  Residual                     0.29          
+    ## Num. levels: donor 81 
+    ## 
+    ## Sample avg. posterior predictive 
+    ## distribution of y (X = xbar):
+    ##          Median MAD_SD
+    ## mean_PPD 8.9    0.0   
+    ## 
+    ## ------
+    ## For info on the priors used see help('prior_summary.stanreg').
+
+As in our previous examples, we can plot this treatment effect
+
+``` r
+bayesplot::mcmc_areas(as.array(strt3), regex_pars = c('^treatment', '^timepoint'))
+```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-markdown_github-ascii_identifiers/allsolid-plotcoefs-1.png)
