@@ -116,7 +116,7 @@ What is noticeable here is that, given the small number of treated samples, it i
 
 Let's try fitting a model to these data.
 
-```{r psolid-glm-model}
+```{r psolid-trt1-model}
 trt1 <- rstanarm::stan_glm(log1p(mutations) ~ treatment,
                            data = md_primary_solid,
                            seed = stan_seed
@@ -126,13 +126,13 @@ trt1
 
 This suggests the treatment effect on number of mutations may be relatively modest, with a median effect indicating that the average mutation count among treatment naive samples would be 20% higher than that among chemo-treated samples (with a relatively wide posterior interval). 
 
-```{r psolid-trt-effect}
+```{r psolid-trt1-coef-plot}
 bayesplot::mcmc_areas(as.array(trt1), pars = 'treatmenttreatment naive')
 ```
 
 How well do this model's predictions match our data?
 
-```{r psolid-trt-ppvalues}
+```{r psolid-trt1-ppvalues}
 trt1.ppred <- rstanarm::predictive_interval(trt1) %>%
   tbl_df(.)
 trt1.median <- rstanarm::predictive_interval(trt1, 0.01) %>%
@@ -146,7 +146,7 @@ md_primary_solid2 <-
   dplyr::bind_cols(trt1.median)
 ```
 
-```{r psolid-trt-ppred}
+```{r psolid-trt1-ppred}
 ggplot(md_primary_solid2, aes(x = treatment, y = log1p(mutations))) + 
   geom_jitter() +
   geom_errorbar(aes(x = treatment, ymin = `5%`, ymax = `95%`),
@@ -156,7 +156,7 @@ ggplot(md_primary_solid2, aes(x = treatment, y = log1p(mutations))) +
 
 How well does our model recover the observed distributions of variables?
 
-```{r psolid-glm-ppcheck}
+```{r psolid-trt1-ppcheck}
 bayesplot::pp_check(trt1)
 ```
 
@@ -166,7 +166,7 @@ Not bad ..
 
 What if we tried a negative-binomial model instead?
 
-```{r psolid-glmnb-model}
+```{r psolid-trt1nb-model}
 trt1nb <- rstanarm::stan_glm(mutations ~ treatment,
                              data = md_primary_solid,
                              family = neg_binomial_2(),
@@ -177,7 +177,7 @@ trt1nb
 
 (notice that here we have almost identical parameter estimates)
 
-```{r psolid-glmnb-ppcheck}
+```{r psolid-trt1nb-ppcheck}
 bayesplot::pp_check(trt1nb)
 ```
 
@@ -187,7 +187,7 @@ Here we have a slightly better fit, but not by much. Consistent with theory, the
 
 Next we look at estimating the effects of number of cycles on mutation count. Sometimes adding more information can address noise in the model, and sometimes it just .. adds noise.
 
-```{r psolid-mvtrt}
+```{r psolid-trt2}
 trt2 <- rstanarm::stan_glm(log1p(mutations) ~ treatment + `total cycles`,
                            data = md_primary_solid %>%
                              dplyr::mutate(no_treatment = ifelse(treatment == 'treatment naive', 1, 0),
@@ -198,7 +198,7 @@ trt2
 
 Let's plot the distributions around these effects
 
-```{r psolid-mvtrt-coefs}
+```{r psolid-trt2-coef-plot}
 bayesplot::mcmc_areas(as.array(trt2), pars = c('treatment', '`total cycles`'))
 ```
 
@@ -215,7 +215,7 @@ Before moving on to include solid/relapse/treated & ascites samples, we fit the 
 
 This model is structurally very similar to fitting a no-intercept model, with formula `mutations ~ 0 + treatment`, which would estimate separate mean numbers of mutations among treated & naive solid primary samples. The difference is that, in this formulation, the treatment-specific means are drawn from a higher-level distribution of means which acts like a prior for the group-specific means, and which in effect regularizes the treatment & non-treatment means -- the group-specific means end up shrinking towards an overall inter-group mean.
 
-```{r psolid-trtmer}
+```{r psolid-trt3}
 trt3 <- rstanarm::stan_glmer(log1p(mutations) ~ (1 | treatment),
                            data = md_primary_solid,
                            adapt_delta = 0.999,
@@ -226,17 +226,30 @@ trt3
 
 The summary for this model does not include the group-specific means by default. We can, however, recover them quite easily.
 
-```{r}
+```{r psolid-trt3-coef-plot}
 bayesplot::mcmc_areas(as.array(trt3), regex_pars = '\\(Intercept\\) treatment\\:')
 ```
 
 A textual summary can be accessed via `summary`:
 
-```{r}
-summary(trt3)
+```{r psolid-trt3-summary}
+summary(trt3, regex_pars = c('^b'))
 ```
 
-It's not surprising, here, that our effect has shrunken -- the mean effect of having a treatment_naive sample is 0.1 (or 10% higher mutation count than chemo-treated samples) instead of 0.2. However the direction of effect is similar. Folks may reasonably disagree about which of these two results is more "correct", but the findings aren't inconsistent.
+However, in order to estimate the average difference between treated and naive samples, it is easiest to use posterior-predicted values.
+
+For this, we construct a hypothetical dataset containing one treated & one treatment-naive sample.
+
+```{r psolid-trt3-treatment-effect}
+newdata <- data.frame(treatment = c('chemo_treated', 'treatment_naive'),
+                      timepoint = c('primary', 'primary'))
+ppred_newdata <- rstanarm::posterior_predict(trt3, newdata = newdata)
+summary(apply(ppred_newdata, 1, diff))
+```
+
+This yields the posterior-predicted distribution of the difference (on scale of `log1(mutations)`) between chemo-treated & treatment-naive samples.
+
+It's not surprising, here, that our effect has shrunken -- the mean effect of having a treatment_naive sample is 0.12 (or 12% higher mutation count than chemo-treated samples) instead of 0.2. Our confidence intervals around this difference is also much greater than in the previous model. However the direction of effect is similar. Folks may reasonably disagree about which of these two results is more "correct", but the findings aren't inconsistent.
 
 At this point, we are ready to move on to a variation of this model that includes all solid samples, estimating effects of relapse & treatment separately.
 
@@ -285,7 +298,7 @@ strt2
 
 These findings are similar to those from the earlier model which did not adjust for duplicate samples per donor, although the effect is somewhat attenuated.
 
-```{r allsolid-strt2-coefplot}
+```{r allsolid-strt2-coef-plot}
 bayesplot::mcmc_areas(as.array(strt2), regex_pars = c('^treatment', '^timepoint'))
 ```
 
@@ -293,13 +306,13 @@ According to this model, we have an estimated average 50% increase in mutations 
 
 The 95% credible intervals for this increase are:
 
-```{r strt2-coef-summary}
+```{r allsolid-strt2-coef-summary}
 rstanarm::posterior_interval(strt2, prob = 0.95, pars = c('timepointrecurrence'))
 ```
 
 How much of this probability mass is < 0?
 
-```{r strt2-coef-pvalue}
+```{r allsolid-strt2-coef-pvalue}
 mean(sapply(as.array(strt2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
 ```
 
@@ -322,7 +335,7 @@ strt3
 
 As in our previous examples, we can plot the posterior density of the estimated treatment & relapse effects.
 
-```{r allsolid-plotcoefs}
+```{r allsolid-strt3-coef-plot}
 bayesplot::mcmc_areas(as.array(strt3), regex_pars = c('^treatment', '^timepoint'))
 ```
 
@@ -330,13 +343,13 @@ It is not surprising that these effects are similar to those estimated by the pr
 
 Here, giving a textual summary again
 
-```{r strt3-coef-summary}
+```{r allsolid-strt3-coef-summary}
 rstanarm::posterior_interval(strt3, prob = 0.95, pars = c('timepointrecurrence'))
 ```
 
 And, calculating the percentage of posterior density that is <= 0.
 
-```{r strt3-coef-pvalue}
+```{r allsolid-strt3-coef-pvalue}
 mean(sapply(as.array(strt3)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
 ```
 
@@ -344,7 +357,7 @@ Finally, we can plot our posterior-predicted intervals for the three models thus
 
 This is a somewhat useful way to gut-check the model parameters.
 
-```{r psolid-compare-ppvalues}
+```{r allsolid-compare-ppvalues}
 # calculating the posterior-predicted values
 strt3.ppred <- rstanarm::predictive_interval(strt3) %>%
   tbl_df(.)
@@ -371,7 +384,7 @@ md_solid2 <-
   dplyr::bind_cols(strt2.median)
 ```
 
-```{r psolid-strt3-ppred}
+```{r allsolid-strt3-ppred}
 ## plotting posterior-predicted values, with observed datapoints
 ggplot(md_solid3, aes(x = specific_treatment, y = log1p(mutations))) + 
   geom_jitter() +
@@ -420,7 +433,7 @@ This model includes an overall estimate for treatment & timepoint effects, from 
 
 Here are the overall estimated effects.
 
-```{r allsampl-coefplot}
+```{r allsamp-atrt1-coef-plot}
 bayesplot::mcmc_areas(as.array(atrt1), regex_pars = c('^treatment', '^timepoint'))
 ```
 
@@ -428,25 +441,25 @@ Again, they are directionally similar to the effects estimated in our subset ana
 
 Let's compare the numerical summaries:
 
-```{r allsamp-coef-summary}
+```{r allsamp-atrt1-coef-summary}
 rstanarm::posterior_interval(atrt1, prob = 0.95, regex_pars = c('^timepoint', '^treatment'))
 ```
 
 The estimate for recurrent samples is higher in this model than was estimated among solid samples only.
 
-```{r }
+```{r allsamp-compare-to-strt2}
 rstanarm::posterior_interval(strt2, prob = 0.95, regex_pars = c('^timepoint', '^treatment'))
 ```
 
 How much of this probability mass is < 0?
 
-```{r strt2-coef-pvalue}
+```{r allsamp-atrt1-coef-pvalue}
 mean(sapply(as.array(atrt1)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
 ```
 
 Let's look at the estimates per tissue type.
 
-```{r allsamp-coefplot-by-tissue-type}
+```{r allsamp-atrt1-coefplot-timepoint-by-tissue-type}
 bayesplot::mcmc_areas(as.array(atrt1), regex_pars = c('^b\\[timepoint'))
 ```
 
@@ -454,7 +467,7 @@ Interesting that, in this model, there is not a lot of variance of effects by ti
 
 Same goes for the treatment effect.
 
-```{r allsamp-coefplot-by-tissue-type}
+```{r allsamp-atrt1-coefplot-treatment-by-tissue-type}
 bayesplot::mcmc_areas(as.array(atrt1), regex_pars = c('^b\\[treatment'))
 ```
 
@@ -511,7 +524,7 @@ atrt2 <- rstanarm::stan_glmer(log1p(mutations) ~
 atrt2
 ```
 
-```{r allsamp-compare-ppvalues-md2}
+```{r allsamp-atrt2-ppvalues}
 atrt2.ppred <- rstanarm::predictive_interval(atrt2) %>%
   tbl_df(.)
 atrt2.median <- rstanarm::predictive_interval(atrt2, 0.01) %>%
@@ -543,12 +556,12 @@ The only explanation for this must be that the scenarios with multiple samples p
 
 What is a numerical summary of this recurrence effect, in a univariate model adjusting only for multiple samples per donor & tissue type?
 
-```{r }
+```{r allsamp-atrt2-coef-summary}
 rstanarm::posterior_interval(atrt2, prob = 0.95, regex_pars = c('^timepoint'))
 ```
 
 How much of this probability mass is < 0?
 
-```{r atrt2-coef-pvalue}
+```{r allsamp-atrt2-coef-pvalue}
 mean(sapply(as.array(atrt2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
 ```
