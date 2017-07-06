@@ -262,7 +262,7 @@ trt2
 ## Estimates:
 ##                Median MAD_SD
 ## (Intercept)     8.9    0.1  
-## treatment       1.1    0.7  
+## treatment       1.0    0.8  
 ## `total cycles` -0.2    0.1  
 ## sigma           0.5    0.0  
 ## 
@@ -392,7 +392,7 @@ summary(apply(ppred_newdata, 1, diff))
 
 ```
 ##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
-## -2.43100 -0.36080  0.09884  0.10520  0.57850  2.61800
+## -2.93000 -0.36350  0.11370  0.09895  0.55950  2.82300
 ```
 
 This yields the posterior-predicted distribution of the difference (on scale of `log1(mutations)`) between chemo-treated & treatment-naive samples.
@@ -1197,3 +1197,190 @@ ggplot(md, aes(x = specific_treatment, y = log1p(peptides))) +
 ```
 
 ![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-peptides-ppred-1.pdf)<!-- --> 
+
+## Analysis of expressed peptides
+
+### Among solid samples
+
+
+```r
+ef1 <- rstanarm::stan_glmer(log1p(`expressed peptides`) ~
+                                timepoint + treatment + (1 | donor),
+                              data = md_solid,
+                              seed = stan_seed,
+                              adapt_delta = 0.999,
+                              iter = 4000
+                              )
+```
+
+```
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```r
+ef1
+```
+
+```
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(`expressed peptides`) ~ timepoint + treatment + (1 | donor)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              3.2    0.3   
+## timepointrecurrence      0.8    0.5   
+## treatmenttreatment naive 0.6    0.3   
+## sigma                    0.4    0.2   
+## 
+## Error terms:
+##  Groups   Name        Std.Dev.
+##  donor    (Intercept) 0.62    
+##  Residual             0.44    
+## Num. levels: donor 81 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 3.8    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
+
+
+```r
+mean(sapply(as.array(ef1)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```
+## [1] 0.05175
+```
+
+
+```r
+rstanarm::posterior_interval(ef1, prob = 0.95, regex_pars = c('^timepoint'))
+```
+
+```
+##                           2.5%    97.5%
+## timepointrecurrence -0.1432569 1.859463
+```
+
+### Among all samples
+
+
+```r
+ef2 <- rstanarm::stan_glmer(log1p(`expressed peptides`) ~
+                                timepoint + treatment + (1 | donor) +
+                                (1 + timepoint | tissue_type),
+                              data = md,
+                              seed = stan_seed,
+                              adapt_delta = 0.999,
+                              iter = 4000
+                              )
+```
+
+```
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```r
+ef2
+```
+
+```
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(`expressed peptides`) ~ timepoint + treatment + (1 | donor) + 
+## 	   (1 + timepoint | tissue_type)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              3.3    0.4   
+## timepointrecurrence      1.1    0.4   
+## treatmenttreatment naive 0.6    0.3   
+## sigma                    0.4    0.1   
+## 
+## Error terms:
+##  Groups      Name                Std.Dev. Corr
+##  donor       (Intercept)         0.58         
+##  tissue_type (Intercept)         0.39         
+##              timepointrecurrence 0.38     0.03
+##  Residual                        0.45         
+## Num. levels: donor 92, tissue_type 2 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 4.0    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
+
+
+```r
+mean(sapply(as.array(ef2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```
+## [1] 0.015
+```
+
+
+```r
+rstanarm::posterior_interval(ef2, prob = 0.95, regex_pars = c('^timepoint'))
+```
+
+```
+##                          2.5%    97.5%
+## timepointrecurrence 0.1573812 1.978541
+```
+
+### Plot predicted values
+
+
+```r
+ef1.ppred <- rstanarm::predictive_interval(ef1) %>%
+  tbl_df(.)
+ef2.ppred <- rstanarm::predictive_interval(ef2) %>%
+  tbl_df(.)
+
+ef1.md <-
+  md_solid %>%
+  dplyr::bind_cols(ef1.ppred)
+ef2.md <-
+  md %>%
+  dplyr::bind_cols(ef2.ppred)
+```
+
+
+```r
+## plotting posterior-predicted values, with observed datapoints
+ggplot(md, aes(x = specific_treatment, y = log1p(`expressed peptides`))) +
+  geom_jitter() +
+  facet_wrap(~tissue_type) +
+  geom_errorbar(aes(x = specific_treatment, ymin = `5%`, ymax = `95%`, colour = 'model: solid samples'),
+                data = ef1.md %>% dplyr::distinct(specific_treatment, tissue_type, .keep_all=T),
+                alpha = 0.5) +
+  geom_errorbar(aes(x = specific_treatment, ymin = `5%`, ymax = `95%`, colour = 'model: all samples'),
+                data = ef2.md %>% dplyr::distinct(specific_treatment, tissue_type, .keep_all=T),
+                alpha = 0.5) +
+  theme_minimal()
+```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-exppeptides-ppred-1.pdf)<!-- --> 
+

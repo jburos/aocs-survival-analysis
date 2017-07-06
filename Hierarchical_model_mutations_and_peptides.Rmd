@@ -645,3 +645,79 @@ ggplot(md, aes(x = specific_treatment, y = log1p(peptides))) +
                 alpha = 0.5) +
   theme_minimal()
 ```
+
+## Analysis of expressed peptides
+
+### Among solid samples
+
+```{r allsamp-ef1}
+ef1 <- rstanarm::stan_glmer(log1p(`expressed peptides`) ~
+                                timepoint + treatment + (1 | donor),
+                              data = md_solid,
+                              seed = stan_seed,
+                              adapt_delta = 0.999,
+                              iter = 4000
+                              )
+ef1
+```
+
+```{r}
+mean(sapply(as.array(ef1)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```{r}
+rstanarm::posterior_interval(ef1, prob = 0.95, regex_pars = c('^timepoint'))
+```
+
+### Among all samples
+
+```{r allsamp-ef2}
+ef2 <- rstanarm::stan_glmer(log1p(`expressed peptides`) ~
+                                timepoint + treatment + (1 | donor) +
+                                (1 + timepoint | tissue_type),
+                              data = md,
+                              seed = stan_seed,
+                              adapt_delta = 0.999,
+                              iter = 4000
+                              )
+ef2
+```
+
+```{r}
+mean(sapply(as.array(ef2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```{r}
+rstanarm::posterior_interval(ef2, prob = 0.95, regex_pars = c('^timepoint'))
+```
+
+### Plot predicted values
+
+```{r allsamp-exppeptides-ppvalues}
+ef1.ppred <- rstanarm::predictive_interval(ef1) %>%
+  tbl_df(.)
+ef2.ppred <- rstanarm::predictive_interval(ef2) %>%
+  tbl_df(.)
+
+ef1.md <-
+  md_solid %>%
+  dplyr::bind_cols(ef1.ppred)
+ef2.md <-
+  md %>%
+  dplyr::bind_cols(ef2.ppred)
+```
+
+```{r allsamp-exppeptides-ppred}
+## plotting posterior-predicted values, with observed datapoints
+ggplot(md, aes(x = specific_treatment, y = log1p(`expressed peptides`))) +
+  geom_jitter() +
+  facet_wrap(~tissue_type) +
+  geom_errorbar(aes(x = specific_treatment, ymin = `5%`, ymax = `95%`, colour = 'model: solid samples'),
+                data = ef1.md %>% dplyr::distinct(specific_treatment, tissue_type, .keep_all=T),
+                alpha = 0.5) +
+  geom_errorbar(aes(x = specific_treatment, ymin = `5%`, ymax = `95%`, colour = 'model: all samples'),
+                data = ef2.md %>% dplyr::distinct(specific_treatment, tissue_type, .keep_all=T),
+                alpha = 0.5) +
+  theme_minimal()
+```
+
