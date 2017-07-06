@@ -1,0 +1,1477 @@
+\documentclass[]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\usepackage{fixltx2e} % provides \textsubscript
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\else % if luatex or xelatex
+  \ifxetex
+    \usepackage{mathspec}
+    \usepackage{xltxtra,xunicode}
+  \else
+    \usepackage{fontspec}
+  \fi
+  \defaultfontfeatures{Mapping=tex-text,Scale=MatchLowercase}
+  \newcommand{\euro}{€}
+\fi
+% use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+% use microtype if available
+\IfFileExists{microtype.sty}{%
+\usepackage{microtype}
+\UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{{#1}}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{{#1}}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{{#1}}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{{#1}}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{{#1}}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{{#1}}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{{#1}}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{{#1}}}
+\newcommand{\RegionMarkerTok}[1]{{#1}}
+\newcommand{\ErrorTok}[1]{\textbf{{#1}}}
+\newcommand{\NormalTok}[1]{{#1}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+\ifxetex
+  \usepackage[setpagesize=false, % page size defined by xetex
+              unicode=false, % unicode breaks when used with xetex
+              xetex]{hyperref}
+\else
+  \usepackage[unicode=true]{hyperref}
+\fi
+\hypersetup{breaklinks=true,
+            bookmarks=true,
+            pdfauthor={Jacqueline Buros Novik},
+            pdftitle={Hierarchical Analysis of Mutation Burden},
+            colorlinks=true,
+            citecolor=blue,
+            urlcolor=blue,
+            linkcolor=magenta,
+            pdfborder={0 0 0}}
+\urlstyle{same}  % don't use monospace font for urls
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\setcounter{secnumdepth}{5}
+
+%%% Use protect on footnotes to avoid problems with footnotes in titles
+\let\rmarkdownfootnote\footnote%
+\def\footnote{\protect\rmarkdownfootnote}
+
+%%% Change title format to be more compact
+\usepackage{titling}
+
+% Create subtitle command for use in maketitle
+\newcommand{\subtitle}[1]{
+  \posttitle{
+    \begin{center}\large#1\end{center}
+    }
+}
+
+\setlength{\droptitle}{-2em}
+  \title{Hierarchical Analysis of Mutation Burden}
+  \pretitle{\vspace{\droptitle}\centering\huge}
+  \posttitle{\par}
+  \author{Jacqueline Buros Novik}
+  \preauthor{\centering\large\emph}
+  \postauthor{\par}
+  \predate{\centering\large\emph}
+  \postdate{\par}
+  \date{7/5/2017}
+
+
+\begin{document}
+
+\maketitle
+
+
+{
+\hypersetup{linkcolor=black}
+\setcounter{tocdepth}{2}
+\tableofcontents
+}
+\section{Supplemental Notebook 1}\label{supplemental-notebook-1}
+
+This is a re-analysis of mutation count by sample type (primary /
+relapse), tissue type (solid vs ascites) and treatment exposure
+(treatment naive vs treated).
+
+This section uses a Bayesian analysis in order to better adjust for the
+dramatic imbalance in groups.
+
+\subsection{Summarize data}\label{summarize-data}
+
+In this analysis we will be looking at how the number of
+\texttt{mutations} \& \texttt{peptides} (predicted neoantigens) varies
+with the sample type (solid / ascites) and timing of acquisition
+(relapse / primary and treated / untreated).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ggplot}\NormalTok{(md, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{mutations_per_mb, }\DataTypeTok{fill =} \NormalTok{specific_treatment)) +}\StringTok{ }
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(~tissue_type) +}
+\StringTok{  }\KeywordTok{geom_histogram}\NormalTok{(}\DataTypeTok{position =} \StringTok{'dodge'}\NormalTok{) +}
+\StringTok{  }\KeywordTok{theme_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+\end{verbatim}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/plot-data-1.pdf}
+
+How many observations do we have for each of these categories?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{md %>%}
+\StringTok{  }\KeywordTok{group_by}\NormalTok{(tissue_type, treatment, timepoint) %>%}
+\StringTok{  }\KeywordTok{tally}\NormalTok{() %>%}
+\StringTok{  }\NormalTok{tidyr::}\KeywordTok{spread}\NormalTok{(}\DataTypeTok{key =} \NormalTok{tissue_type, }\DataTypeTok{value =} \NormalTok{n, }\DataTypeTok{fill =} \DecValTok{0}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Source: local data frame [3 x 4]
+## Groups: treatment [2]
+## 
+##         treatment  timepoint ascites solid
+## *           <chr>      <chr>   <dbl> <dbl>
+## 1   chemo treated    primary       0     5
+## 2   chemo treated recurrence      24     6
+## 3 treatment naive    primary       4    75
+\end{verbatim}
+
+Strikes me that the ``recurrent'' timepoint is problematic in this
+analysis, since we don't have any untreated/recurent samples \& so
+cannot separate effect of recurrence from that of treatment.
+
+Instead, we can look at \texttt{solid} samples only, among those
+collected at the primary timepoint comparing treated to untreated
+samples. My guess is, many of these might be the paired samples.
+
+We can then include the treated / recurrence using only solid samples,
+although my guess is in this case we will see a higher rate of mutations
+among recurrence samples than among primary/treated.
+
+Only after these effects are well established should we turn to the
+ascites samples, to see if the difference between untreated/primary \&
+treated/relapse is consisent with that seen in solid samples.
+
+\subsection{Restricting to primary, solid
+samples}\label{restricting-to-primary-solid-samples}
+
+We now have samples, are treatment-naive.
+
+Let's review how these metrics are distributed in this subset of our
+samples. First we note that the maximum number of samples per donor in
+this subset of our data is , meaning we have no duplicate samples.
+
+Here, looking at metrics among all primary, solid samples irrespective
+of treatment:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ggplot}\NormalTok{(md_primary_solid %>%}
+\StringTok{         }\NormalTok{tidyr::}\KeywordTok{gather}\NormalTok{(}\DataTypeTok{value =} \StringTok{'value'}\NormalTok{, }\DataTypeTok{key =} \StringTok{'variable'}\NormalTok{, mutations, mutations_per_mb, peptides), }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{value)) +}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_density}\NormalTok{() +}\StringTok{ }
+\StringTok{  }\KeywordTok{theme_minimal}\NormalTok{() +}\StringTok{ }
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(~variable, }\DataTypeTok{scale =} \StringTok{'free'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-review-dist-1.pdf}
+
+These numbers are not exactly normally-distributed.
+
+Perhaps using a log-transformed value?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ggplot}\NormalTok{(md_primary_solid %>%}
+\StringTok{         }\NormalTok{tidyr::}\KeywordTok{gather}\NormalTok{(}\DataTypeTok{value =} \StringTok{'value'}\NormalTok{, }\DataTypeTok{key =} \StringTok{'variable'}\NormalTok{, mutations, mutations_per_mb, peptides),}
+       \KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \KeywordTok{log1p}\NormalTok{(value))) +}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_density}\NormalTok{() +}\StringTok{ }
+\StringTok{  }\KeywordTok{theme_minimal}\NormalTok{() +}\StringTok{ }
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(~variable, }\DataTypeTok{scale =} \StringTok{'free'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-review-dist-log-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ggplot}\NormalTok{(md_primary_solid %>%}
+\StringTok{         }\NormalTok{tidyr::}\KeywordTok{gather}\NormalTok{(}\DataTypeTok{value =} \StringTok{'value'}\NormalTok{, }\DataTypeTok{key =} \StringTok{'variable'}\NormalTok{, mutations, mutations_per_mb, peptides),}
+       \KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \KeywordTok{log1p}\NormalTok{(value), }\DataTypeTok{fill =} \NormalTok{treatment)) +}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_density}\NormalTok{(}\DataTypeTok{alpha =} \FloatTok{0.4}\NormalTok{) +}\StringTok{ }
+\StringTok{  }\KeywordTok{theme_minimal}\NormalTok{() +}\StringTok{ }
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(~variable, }\DataTypeTok{scale =} \StringTok{'free'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-review-dist-log-by-trt-1.pdf}
+
+What is noticeable here is that, given the small number of treated
+samples, it is very hard to tell graphically whether there is any
+difference in the two distributions.
+
+Let's try fitting a model to these data.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{trt1 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glm}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(mutations) ~}\StringTok{ }\NormalTok{treatment,}
+                           \DataTypeTok{data =} \NormalTok{md_primary_solid,}
+                           \DataTypeTok{seed =} \NormalTok{stan_seed}
+                           \NormalTok{)}
+\NormalTok{trt1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glm
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## sigma                    0.5    0.0   
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.8    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+This suggests the treatment effect on number of mutations may be
+relatively modest, with a median effect indicating that the average
+mutation count among treatment naive samples would be 20\% higher than
+that among chemo-treated samples (with a relatively wide posterior
+interval).
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{mcmc_areas}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(trt1), }\DataTypeTok{pars =} \StringTok{'treatmenttreatment naive'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt1-coef-plot-1.pdf}
+
+How well do this model's predictions match our data?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{trt1.ppred <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(trt1) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.)}
+\NormalTok{trt1.median <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(trt1, }\FloatTok{0.01}\NormalTok{) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{median =} \NormalTok{(}\StringTok{`}\DataTypeTok{49.5%}\StringTok{`} \NormalTok{+}\StringTok{ `}\DataTypeTok{50.5%}\StringTok{`}\NormalTok{)/}\DecValTok{2}\NormalTok{) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{select}\NormalTok{(median)}
+
+\NormalTok{md_primary_solid2 <-}\StringTok{ }
+\StringTok{  }\NormalTok{md_primary_solid %>%}\StringTok{ }
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(trt1.ppred) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(trt1.median)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{ggplot}\NormalTok{(md_primary_solid2, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{treatment, }\DataTypeTok{y =} \KeywordTok{log1p}\NormalTok{(mutations))) +}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_jitter}\NormalTok{() +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{md_primary_solid2 %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(treatment, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{colour =} \StringTok{'red'}\NormalTok{, }\DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt1-ppred-1.pdf}
+
+How well does our model recover the observed distributions of variables?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{pp_check}\NormalTok{(trt1)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt1-ppcheck-1.pdf}
+
+Not bad ..
+
+\subsubsection{Try a negative-binomial
+model?}\label{try-a-negative-binomial-model}
+
+What if we tried a negative-binomial model instead?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{trt1nb <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glm}\NormalTok{(mutations ~}\StringTok{ }\NormalTok{treatment,}
+                             \DataTypeTok{data =} \NormalTok{md_primary_solid,}
+                             \DataTypeTok{family =} \KeywordTok{neg_binomial_2}\NormalTok{(),}
+                             \DataTypeTok{seed =} \NormalTok{stan_seed}
+\NormalTok{)}
+\NormalTok{trt1nb}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glm
+##  family:  neg_binomial_2 [log]
+##  formula: mutations ~ treatment
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.8    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## reciprocal_dispersion    4.3    0.7   
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 7777.7  612.2
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+(notice that here we have almost identical parameter estimates)
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{pp_check}\NormalTok{(trt1nb)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt1nb-ppcheck-1.pdf}
+
+Here we have a slightly better fit, but not by much. Consistent with
+theory, the log-transform works well as an approximation to the
+`counting process' at high levels of the counts.
+
+\subsubsection{Adjust for number of
+cycles?}\label{adjust-for-number-of-cycles}
+
+Next we look at estimating the effects of number of cycles on mutation
+count. Sometimes adding more information can address noise in the model,
+and sometimes it just .. adds noise.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{trt2 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glm}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(mutations) ~}\StringTok{ }\NormalTok{treatment +}\StringTok{ `}\DataTypeTok{total cycles}\StringTok{`}\NormalTok{,}
+                           \DataTypeTok{data =} \NormalTok{md_primary_solid %>%}
+\StringTok{                             }\NormalTok{dplyr::}\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{no_treatment =} \KeywordTok{ifelse}\NormalTok{(treatment ==}\StringTok{ 'treatment naive'}\NormalTok{, }\DecValTok{1}\NormalTok{, }\DecValTok{0}\NormalTok{),}
+                                           \DataTypeTok{treatment =} \KeywordTok{ifelse}\NormalTok{(treatment !=}\StringTok{ 'treatment naive'}\NormalTok{, }\DecValTok{1}\NormalTok{, }\DecValTok{0}\NormalTok{))}
+                           \NormalTok{)}
+\NormalTok{trt2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glm
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment + `total cycles`
+## ------
+## 
+## Estimates:
+##                Median MAD_SD
+## (Intercept)     8.9    0.1  
+## treatment       1.1    0.7  
+## `total cycles` -0.2    0.1  
+## sigma           0.5    0.0  
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.8    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+Let's plot the distributions around these effects
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{mcmc_areas}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(trt2), }\DataTypeTok{pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'treatment'}\NormalTok{, }\StringTok{'`total cycles`'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt2-coef-plot-1.pdf}
+
+The interpretation of these results would be that :
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\itemsep1pt\parskip0pt\parsep0pt
+\item
+  Samples that received treatment have higher average mutation count
+  than samples that are treatment-naive
+\item
+  Among those receiving treatment, those with more cycles tended to have
+  lower mutation count
+\end{enumerate}
+
+This may or may not make biological sense (to me it feels like a
+stretch), and the posterior distributions of effects are all pretty
+broad. So my inclination would be to judge these effects as being
+``within the noise''.
+
+\subsubsection{Use a varying-intercept
+effect?}\label{use-a-varying-intercept-effect}
+
+Before moving on to include solid/relapse/treated \& ascites samples, we
+fit the same model using a varying-coefficient structure. We do this
+because this is the type of model we will fit in later iterations and so
+it will be helpful to have a baseline here to compare against.
+
+This model is structurally very similar to fitting a no-intercept model,
+with formula \texttt{mutations \textasciitilde{} 0 + treatment}, which
+would estimate separate mean numbers of mutations among treated \& naive
+solid primary samples. The difference is that, in this formulation, the
+treatment-specific means are drawn from a higher-level distribution of
+means which acts like a prior for the group-specific means, and which in
+effect regularizes the treatment \& non-treatment means -- the
+group-specific means end up shrinking towards an overall inter-group
+mean.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{trt3 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glmer}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(mutations) ~}\StringTok{ }\NormalTok{(}\DecValTok{1} \NormalTok{|}\StringTok{ }\NormalTok{treatment),}
+                           \DataTypeTok{data =} \NormalTok{md_primary_solid,}
+                           \DataTypeTok{adapt_delta =} \FloatTok{0.999}\NormalTok{,}
+                           \DataTypeTok{seed =} \NormalTok{stan_seed}
+                           \NormalTok{)}
+\NormalTok{trt3}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ (1 | treatment)
+## ------
+## 
+## Estimates:
+##             Median MAD_SD
+## (Intercept) 8.8    0.2   
+## sigma       0.5    0.0   
+## 
+## Error terms:
+##  Groups    Name        Std.Dev.
+##  treatment (Intercept) 0.42    
+##  Residual              0.48    
+## Num. levels: treatment 2 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.8    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+The summary for this model does not include the group-specific means by
+default. We can, however, recover them quite easily.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{mcmc_areas}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(trt3), }\DataTypeTok{regex_pars =} \StringTok{'}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{(Intercept}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{) treatment}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{:'}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt3-coef-plot-1.pdf}
+
+A textual summary can be accessed via \texttt{summary}:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{summary}\NormalTok{(trt3, }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^b'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## Model Info:
+## 
+##  function:  stan_glmer
+##  family:    gaussian [identity]
+##  formula:   log1p(mutations) ~ (1 | treatment)
+##  algorithm: sampling
+##  priors:    see help('prior_summary')
+##  sample:    4000 (posterior sample size)
+##  num obs:   80
+##  groups:    treatment (2)
+## 
+## Estimates:
+##                                            mean   sd   2.5%   25%   50%
+## b[(Intercept) treatment:chemo_treated]    0.0    0.3 -0.6   -0.1   0.0 
+## b[(Intercept) treatment:treatment_naive]  0.1    0.3 -0.5    0.0   0.0 
+##                                            75%   97.5%
+## b[(Intercept) treatment:chemo_treated]    0.0   0.7   
+## b[(Intercept) treatment:treatment_naive]  0.2   0.9   
+## 
+## Diagnostics:
+##                                          mcse Rhat n_eff
+## b[(Intercept) treatment:chemo_treated]   0.0  1.0  730  
+## b[(Intercept) treatment:treatment_naive] 0.0  1.0  594  
+## 
+## For each parameter, mcse is Monte Carlo standard error, n_eff is a crude measure of effective sample size, and Rhat is the potential scale reduction factor on split chains (at convergence Rhat=1).
+\end{verbatim}
+
+However, in order to estimate the average difference between treated and
+naive samples, it is easiest to use posterior-predicted values.
+
+For this, we construct a hypothetical dataset containing one treated \&
+one treatment-naive sample.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{newdata <-}\StringTok{ }\KeywordTok{data.frame}\NormalTok{(}\DataTypeTok{treatment =} \KeywordTok{c}\NormalTok{(}\StringTok{'chemo_treated'}\NormalTok{, }\StringTok{'treatment_naive'}\NormalTok{),}
+                      \DataTypeTok{timepoint =} \KeywordTok{c}\NormalTok{(}\StringTok{'primary'}\NormalTok{, }\StringTok{'primary'}\NormalTok{))}
+\NormalTok{ppred_newdata <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{posterior_predict}\NormalTok{(trt3, }\DataTypeTok{newdata =} \NormalTok{newdata)}
+\KeywordTok{summary}\NormalTok{(}\KeywordTok{apply}\NormalTok{(ppred_newdata, }\DecValTok{1}\NormalTok{, diff))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+## -2.43100 -0.36080  0.09884  0.10520  0.57850  2.61800
+\end{verbatim}
+
+This yields the posterior-predicted distribution of the difference (on
+scale of \texttt{log1(mutations)}) between chemo-treated \&
+treatment-naive samples.
+
+It's not surprising, here, that our effect has shrunken -- the mean
+effect of having a treatment\_naive sample is 0.12 (or 12\% higher
+mutation count than chemo-treated samples) instead of 0.2. Our
+confidence intervals around this difference is also much greater than in
+the previous model. However the direction of effect is similar. Folks
+may reasonably disagree about which of these two results is more
+``correct'', but the findings aren't inconsistent.
+
+At this point, we are ready to move on to a variation of this model that
+includes all solid samples, estimating effects of relapse \& treatment
+separately.
+
+\subsection{All solid tumor samples}\label{all-solid-tumor-samples}
+
+Now we start to analyze a dataset including primary/untreated,
+primary/treated \& relapse/treated samples.
+
+First we note that the maximum number of samples per donor in this
+subset of our data is , meaning we have a handful of duplicate samples
+per donor. We will adjust for this in our analysis.
+
+\subsubsection{Using a standard Bayesian
+glm}\label{using-a-standard-bayesian-glm}
+
+First we fit a standard \texttt{glm} without any donor-specific
+adjustments.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{strt1 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glm}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(mutations) ~}\StringTok{ }\NormalTok{treatment +}\StringTok{ }\NormalTok{timepoint,}
+                           \DataTypeTok{data =} \NormalTok{md_solid, }
+                           \DataTypeTok{adapt_delta =} \FloatTok{0.999}\NormalTok{,}
+                           \DataTypeTok{seed =} \NormalTok{stan_seed}
+                           \NormalTok{)}
+\NormalTok{strt1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glm
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment + timepoint
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## timepointrecurrence      0.8    0.3   
+## sigma                    0.5    0.0   
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.9    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+Here, we see a similar treatment effect as in our earlier analysis
+(which is encouraging), but the estimated ``recurrence'' effect is
+somewhat higher than the treatment effect.
+
+How well are we recovering the distribution of our
+\texttt{log1p(mutation)} count in this sample?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{pp_check}\NormalTok{(strt1)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsolid-strt1-ppcheck-1.pdf}
+
+Pretty well.
+
+\subsubsection{Using a varying-intercept
+model}\label{using-a-varying-intercept-model}
+
+Let's fit this model with an adjustment for within-id similarity.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{strt2 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glmer}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(mutations) ~}\StringTok{ }\NormalTok{treatment +}\StringTok{ }\NormalTok{timepoint +}\StringTok{ }\NormalTok{(}\DecValTok{1} \NormalTok{|}\StringTok{ }\NormalTok{donor),}
+                           \DataTypeTok{data =} \NormalTok{md_solid, }
+                           \DataTypeTok{adapt_delta =} \FloatTok{0.999}\NormalTok{,}
+                           \DataTypeTok{iter =} \DecValTok{5000}\NormalTok{,}
+                           \DataTypeTok{seed =} \NormalTok{stan_seed}
+                           \NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: Examine the pairs() plot to diagnose sampling problems
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{strt2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment + timepoint + (1 | donor)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## timepointrecurrence      0.5    0.3   
+## sigma                    0.3    0.1   
+## 
+## Error terms:
+##  Groups   Name        Std.Dev.
+##  donor    (Intercept) 0.36    
+##  Residual             0.29    
+## Num. levels: donor 81 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.9    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+These findings are similar to those from the earlier model which did not
+adjust for duplicate samples per donor, although the effect is somewhat
+attenuated.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{mcmc_areas}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(strt2), }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^treatment'}\NormalTok{, }\StringTok{'^timepoint'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsolid-strt2-coef-plot-1.pdf}
+
+According to this model, we have an estimated average 50\% increase in
+mutations for relapse samples, vs primary.
+
+The 95\% credible intervals for this increase are:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rstanarm::}\KeywordTok{posterior_interval}\NormalTok{(strt2, }\DataTypeTok{prob =} \FloatTok{0.95}\NormalTok{, }\DataTypeTok{pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'timepointrecurrence'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                            2.5%    97.5%
+## timepointrecurrence -0.05066051 1.125876
+\end{verbatim}
+
+How much of this probability mass is \textless{} 0?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{mean}\NormalTok{(}\KeywordTok{sapply}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(strt2)[,,}\StringTok{'timepointrecurrence'}\NormalTok{], }\DataTypeTok{FUN =} \NormalTok{function(x) x <=}\StringTok{ }\DecValTok{0}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.0383
+\end{verbatim}
+
+This number reflects the so-called `bayesian p-value', IE the posterior
+probability of a relapse effect being \textless{}= 0. Note that this
+would correspond to a one-sided p-value in traditional frequentist NHT
+framework.
+
+\emph{Side note: this adjustment for \texttt{donor} only accounts for
+the fact that we'd expect two samples from the same donor to be more
+similar from one another than two samples from different donors. It does
+not estimate ``varying-coefficients'', ie relapse or treatment effects
+cannot vary by donor. All effects are estimated as population averages.}
+
+\subsubsection{Using a varying-coefficient
+model}\label{using-a-varying-coefficient-model}
+
+Next we fit a varying-coefficient model, which allows the relapse effect
+to vary by donor, but models those donor-specific variances as
+deviations from an overall relapse effect on mutation count.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{strt3 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glmer}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(mutations) ~}\StringTok{ }\NormalTok{treatment +}\StringTok{ }\NormalTok{timepoint +}\StringTok{ }\NormalTok{(}\DecValTok{1} \NormalTok{+}\StringTok{ }\NormalTok{timepoint |}\StringTok{ }\NormalTok{donor),}
+                           \DataTypeTok{data =} \NormalTok{md_solid, }
+                           \DataTypeTok{adapt_delta =} \FloatTok{0.999}\NormalTok{,}
+                           \DataTypeTok{seed =} \NormalTok{stan_seed}
+                           \NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: Examine the pairs() plot to diagnose sampling problems
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{strt3}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment + timepoint + (1 + timepoint | donor)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## timepointrecurrence      0.6    0.4   
+## sigma                    0.3    0.2   
+## 
+## Error terms:
+##  Groups   Name                Std.Dev. Corr 
+##  donor    (Intercept)         0.33          
+##           timepointrecurrence 0.31     -0.09
+##  Residual                     0.32          
+## Num. levels: donor 81 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.9    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+As in our previous examples, we can plot the posterior density of the
+estimated treatment \& relapse effects.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{mcmc_areas}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(strt3), }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^treatment'}\NormalTok{, }\StringTok{'^timepoint'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsolid-strt3-coef-plot-1.pdf}
+
+It is not surprising that these effects are similar to those estimated
+by the previous model, since most of our donors have only 1 sample. But
+it is reassuring to know that this particular modeling choice has little
+impact on our findings.
+
+Here, giving a textual summary again
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rstanarm::}\KeywordTok{posterior_interval}\NormalTok{(strt3, }\DataTypeTok{prob =} \FloatTok{0.95}\NormalTok{, }\DataTypeTok{pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'timepointrecurrence'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                           2.5%    97.5%
+## timepointrecurrence -0.2124145 1.256275
+\end{verbatim}
+
+And, calculating the percentage of posterior density that is
+\textless{}= 0.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{mean}\NormalTok{(}\KeywordTok{sapply}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(strt3)[,,}\StringTok{'timepointrecurrence'}\NormalTok{], }\DataTypeTok{FUN =} \NormalTok{function(x) x <=}\StringTok{ }\DecValTok{0}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.06625
+\end{verbatim}
+
+Finally, we can plot our posterior-predicted intervals for the three
+models thus far, overlaying them with the observed data.
+
+This is a somewhat useful way to gut-check the model parameters.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{# calculating the posterior-predicted values}
+\NormalTok{strt3.ppred <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(strt3) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.)}
+\NormalTok{strt3.median <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(strt3, }\FloatTok{0.01}\NormalTok{) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{median =} \NormalTok{(}\StringTok{`}\DataTypeTok{49.5%}\StringTok{`} \NormalTok{+}\StringTok{ `}\DataTypeTok{50.5%}\StringTok{`}\NormalTok{)/}\DecValTok{2}\NormalTok{) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{select}\NormalTok{(median)}
+
+\NormalTok{md_solid3 <-}\StringTok{ }
+\StringTok{  }\NormalTok{md_solid %>%}\StringTok{ }
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(strt3.ppred) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(strt3.median)}
+
+\NormalTok{strt2.ppred <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(strt2) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.)}
+\NormalTok{strt2.median <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(strt2, }\FloatTok{0.01}\NormalTok{) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{median =} \NormalTok{(}\StringTok{`}\DataTypeTok{49.5%}\StringTok{`} \NormalTok{+}\StringTok{ `}\DataTypeTok{50.5%}\StringTok{`}\NormalTok{)/}\DecValTok{2}\NormalTok{) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{select}\NormalTok{(median)}
+
+\NormalTok{md_solid2 <-}\StringTok{ }
+\StringTok{  }\NormalTok{md_solid %>%}\StringTok{ }
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(strt2.ppred) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(strt2.median)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{## plotting posterior-predicted values, with observed datapoints}
+\KeywordTok{ggplot}\NormalTok{(md_solid3, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{y =} \KeywordTok{log1p}\NormalTok{(mutations))) +}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_jitter}\NormalTok{() +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: primary only'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{md_primary_solid2 %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: varying-slope'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{md_solid3 %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: varying-int'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{md_solid2 %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{theme_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsolid-strt3-ppred-1.pdf}
+
+\subsection{Including ascites samples}\label{including-ascites-samples}
+
+Finally we look at a model including ascites samples
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{atrt1 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glmer}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(mutations) ~}\StringTok{ }
+\StringTok{                                }\NormalTok{timepoint +}\StringTok{ }\NormalTok{treatment +}\StringTok{ }\NormalTok{(}\DecValTok{1} \NormalTok{|}\StringTok{ }\NormalTok{donor) +}
+\StringTok{                                }\NormalTok{(}\DecValTok{1} \NormalTok{+}\StringTok{ }\NormalTok{timepoint +}\StringTok{ }\NormalTok{treatment |}\StringTok{ }\NormalTok{tissue_type),}
+                              \DataTypeTok{data =} \NormalTok{md,}
+                              \DataTypeTok{seed =} \NormalTok{stan_seed,}
+                              \DataTypeTok{adapt_delta =} \FloatTok{0.999}\NormalTok{,}
+                              \DataTypeTok{iter =} \DecValTok{4000}
+                              \NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: There were 5 divergent transitions after warmup. Increasing adapt_delta above 0.999 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: Examine the pairs() plot to diagnose sampling problems
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{atrt1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ timepoint + treatment + (1 | donor) + (1 + 
+##     timepoint + treatment | tissue_type)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## timepointrecurrence      0.6    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## sigma                    0.2    0.0   
+## 
+## Error terms:
+##  Groups      Name                     Std.Dev. Corr       
+##  donor       (Intercept)              0.40                
+##  tissue_type (Intercept)              0.15                
+##              timepointrecurrence      0.14     -0.03      
+##              treatmenttreatment naive 0.14     -0.03  0.08
+##  Residual                             0.20                
+## Num. levels: donor 92, tissue_type 2 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 9.0    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+It's worth noting that this model recovers the distribution of our
+original data pretty well.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{pp_check}\NormalTok{(atrt1)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-ppcheck-1.pdf}
+
+And, samples efficiently
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{mcmc_trace}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(atrt1), }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^treatment'}\NormalTok{, }\StringTok{'^timepoint'}\NormalTok{), }\DataTypeTok{facet_args =} \KeywordTok{list}\NormalTok{(}\DataTypeTok{ncol =} \DecValTok{1}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-traceplot-1.pdf}
+
+This model includes an overall estimate for treatment \& timepoint
+effects, from which tissue-type-specific coeffients are drawn.
+
+Here are the overall estimated effects.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{mcmc_areas}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(atrt1), }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^treatment'}\NormalTok{, }\StringTok{'^timepoint'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-coef-plot-1.pdf}
+
+Again, they are directionally similar to the effects estimated in our
+subset analyses.
+
+Let's compare the numerical summaries:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rstanarm::}\KeywordTok{posterior_interval}\NormalTok{(atrt1, }\DataTypeTok{prob =} \FloatTok{0.95}\NormalTok{, }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^timepoint'}\NormalTok{, }\StringTok{'^treatment'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                                2.5%    97.5%
+## timepointrecurrence       0.1147481 1.062608
+## treatmenttreatment naive -0.2621648 0.631993
+\end{verbatim}
+
+The estimate for recurrent samples is higher in this model than was
+estimated among solid samples only.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rstanarm::}\KeywordTok{posterior_interval}\NormalTok{(strt2, }\DataTypeTok{prob =} \FloatTok{0.95}\NormalTok{, }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^timepoint'}\NormalTok{, }\StringTok{'^treatment'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                                 2.5%     97.5%
+## timepointrecurrence      -0.05066051 1.1258756
+## treatmenttreatment naive -0.25801920 0.5895171
+\end{verbatim}
+
+How much of this probability mass is \textless{} 0?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{mean}\NormalTok{(}\KeywordTok{sapply}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(atrt1)[,,}\StringTok{'timepointrecurrence'}\NormalTok{], }\DataTypeTok{FUN =} \NormalTok{function(x) x <=}\StringTok{ }\DecValTok{0}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.010625
+\end{verbatim}
+
+Let's look at the estimates per tissue type.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{mcmc_areas}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(atrt1), }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^b}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{[timepoint'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-coefplot-timepoint-by-tissue-type-1.pdf}
+
+Interesting that, in this model, there is not a lot of variance of
+effects by tissue type.
+
+Same goes for the treatment effect.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{bayesplot::}\KeywordTok{mcmc_areas}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(atrt1), }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^b}\CharTok{\textbackslash{}\textbackslash{}}\StringTok{[treatment'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-coefplot-treatment-by-tissue-type-1.pdf}
+
+This could be due to a lack of sufficient data by which to estimate the
+variance, thus causing the model to fall back on default weakly
+informative priors which assume little variance by tissue type.
+
+Let's now summarize our posterior-predicted values as we did in earlier
+models.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{atrt1.ppred <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(atrt1) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.)}
+\NormalTok{atrt1.median <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(atrt1, }\FloatTok{0.01}\NormalTok{) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{median =} \NormalTok{(}\StringTok{`}\DataTypeTok{49.5%}\StringTok{`} \NormalTok{+}\StringTok{ `}\DataTypeTok{50.5%}\StringTok{`}\NormalTok{)/}\DecValTok{2}\NormalTok{) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{select}\NormalTok{(median)}
+
+\NormalTok{md1 <-}\StringTok{ }
+\StringTok{  }\NormalTok{md %>%}\StringTok{ }
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(atrt1.ppred) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(atrt1.median)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{## plotting posterior-predicted values, with observed datapoints}
+\KeywordTok{ggplot}\NormalTok{(md1, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{y =} \KeywordTok{log1p}\NormalTok{(mutations))) +}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_jitter}\NormalTok{() +}
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(~tissue_type) +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: primary only'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{md_primary_solid2 %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: primary solid'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{md_solid2 %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: all samples'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{md1 %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, tissue_type, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{theme_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-ppred-1.pdf}
+
+Strange how, with each additional sample type added to the model, the
+estimated mean primary/treated \texttt{log1p(mutation)} count gets
+lower.
+
+\subsubsection{Removing treatment from the
+model}\label{removing-treatment-from-the-model}
+
+What happens if we remove treatment from the model, and instead compare
+all relapse vs all primary (treated + untreated) samples?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{atrt2 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glmer}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(mutations) ~}\StringTok{ }
+\StringTok{                                }\NormalTok{timepoint +}\StringTok{ }\NormalTok{(}\DecValTok{1} \NormalTok{|}\StringTok{ }\NormalTok{donor) +}
+\StringTok{                                }\NormalTok{(}\DecValTok{1} \NormalTok{+}\StringTok{ }\NormalTok{timepoint |}\StringTok{ }\NormalTok{tissue_type),}
+                              \DataTypeTok{data =} \NormalTok{md,}
+                              \DataTypeTok{seed =} \NormalTok{stan_seed,}
+                              \DataTypeTok{adapt_delta =} \FloatTok{0.999}\NormalTok{,}
+                              \DataTypeTok{iter =} \DecValTok{4000}
+                              \NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.999 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: Examine the pairs() plot to diagnose sampling problems
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{atrt2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ timepoint + (1 | donor) + (1 + timepoint | 
+##     tissue_type)
+## ------
+## 
+## Estimates:
+##                     Median MAD_SD
+## (Intercept)         8.9    0.1   
+## timepointrecurrence 0.4    0.1   
+## sigma               0.2    0.0   
+## 
+## Error terms:
+##  Groups      Name                Std.Dev. Corr
+##  donor       (Intercept)         0.40         
+##  tissue_type (Intercept)         0.18         
+##              timepointrecurrence 0.17     0.03
+##  Residual                        0.20         
+## Num. levels: donor 92, tissue_type 2 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 9.0    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{atrt2.ppred <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(atrt2) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.)}
+\NormalTok{atrt2.median <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(atrt2, }\FloatTok{0.01}\NormalTok{) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{mutate}\NormalTok{(}\DataTypeTok{median =} \NormalTok{(}\StringTok{`}\DataTypeTok{49.5%}\StringTok{`} \NormalTok{+}\StringTok{ `}\DataTypeTok{50.5%}\StringTok{`}\NormalTok{)/}\DecValTok{2}\NormalTok{) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{select}\NormalTok{(median)}
+
+\NormalTok{md2 <-}\StringTok{ }
+\StringTok{  }\NormalTok{md %>%}\StringTok{ }
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(atrt2.ppred) %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(atrt2.median)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{## plotting posterior-predicted values, with observed datapoints}
+\KeywordTok{ggplot}\NormalTok{(md2, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{y =} \KeywordTok{log1p}\NormalTok{(mutations))) +}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_jitter}\NormalTok{() +}
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(~tissue_type) +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: all samples'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{md1 %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, tissue_type, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: recurrent only'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{md2 %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, tissue_type, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{theme_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt2-ppred-1.pdf}
+
+The only explanation for this must be that the scenarios with multiple
+samples per donor must have exaggerated the primary/treated vs
+primary/untreated effects in this model.
+
+What is a numerical summary of this recurrence effect, in a univariate
+model adjusting only for multiple samples per donor \& tissue type?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rstanarm::}\KeywordTok{posterior_interval}\NormalTok{(atrt2, }\DataTypeTok{prob =} \FloatTok{0.95}\NormalTok{, }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^timepoint'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                           2.5%     97.5%
+## timepointrecurrence 0.08891223 0.6694402
+\end{verbatim}
+
+How much of this probability mass is \textless{} 0?
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{mean}\NormalTok{(}\KeywordTok{sapply}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(atrt2)[,,}\StringTok{'timepointrecurrence'}\NormalTok{], }\DataTypeTok{FUN =} \NormalTok{function(x) x <=}\StringTok{ }\DecValTok{0}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.01225
+\end{verbatim}
+
+\subsection{Analyzing peptides}\label{analyzing-peptides}
+
+\subsubsection{Among solid samples}\label{among-solid-samples}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{f1 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glmer}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(peptides) ~}\StringTok{ }
+\StringTok{                                }\NormalTok{timepoint +}\StringTok{ }\NormalTok{treatment +}\StringTok{ }\NormalTok{(}\DecValTok{1} \NormalTok{|}\StringTok{ }\NormalTok{donor),}
+                              \DataTypeTok{data =} \NormalTok{md_solid,}
+                              \DataTypeTok{seed =} \NormalTok{stan_seed,}
+                              \DataTypeTok{adapt_delta =} \FloatTok{0.999}\NormalTok{,}
+                              \DataTypeTok{iter =} \DecValTok{4000}
+                              \NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: Examine the pairs() plot to diagnose sampling problems
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{f1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(peptides) ~ timepoint + treatment + (1 | donor)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              4.7    0.3   
+## timepointrecurrence      0.4    0.4   
+## treatmenttreatment naive 0.1    0.3   
+## sigma                    0.3    0.2   
+## 
+## Error terms:
+##  Groups   Name        Std.Dev.
+##  donor    (Intercept) 0.57    
+##  Residual             0.36    
+## Num. levels: donor 81 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 4.9    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{mean}\NormalTok{(}\KeywordTok{sapply}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(f1)[,,}\StringTok{'timepointrecurrence'}\NormalTok{], }\DataTypeTok{FUN =} \NormalTok{function(x) x <=}\StringTok{ }\DecValTok{0}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.131875
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rstanarm::}\KeywordTok{posterior_interval}\NormalTok{(f1, }\DataTypeTok{prob =} \FloatTok{0.95}\NormalTok{, }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^timepoint'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                           2.5%   97.5%
+## timepointrecurrence -0.3180513 1.37191
+\end{verbatim}
+
+\subsubsection{Among all samples}\label{among-all-samples}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{f2 <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{stan_glmer}\NormalTok{(}\KeywordTok{log1p}\NormalTok{(peptides) ~}\StringTok{ }
+\StringTok{                                }\NormalTok{timepoint +}\StringTok{ }\NormalTok{treatment +}\StringTok{ }\NormalTok{(}\DecValTok{1} \NormalTok{|}\StringTok{ }\NormalTok{donor) +}
+\StringTok{                                }\NormalTok{(}\DecValTok{1} \NormalTok{+}\StringTok{ }\NormalTok{timepoint |}\StringTok{ }\NormalTok{tissue_type),}
+                              \DataTypeTok{data =} \NormalTok{md,}
+                              \DataTypeTok{seed =} \NormalTok{stan_seed,}
+                              \DataTypeTok{adapt_delta =} \FloatTok{0.999}\NormalTok{,}
+                              \DataTypeTok{iter =} \DecValTok{4000}
+                              \NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.999 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+\end{verbatim}
+
+\begin{verbatim}
+## Warning: Examine the pairs() plot to diagnose sampling problems
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{f2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(peptides) ~ timepoint + treatment + (1 | donor) + (1 + 
+##     timepoint | tissue_type)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              4.7    0.3   
+## timepointrecurrence      0.5    0.3   
+## treatmenttreatment naive 0.1    0.3   
+## sigma                    0.2    0.0   
+## 
+## Error terms:
+##  Groups      Name                Std.Dev. Corr 
+##  donor       (Intercept)         0.62          
+##  tissue_type (Intercept)         0.19          
+##              timepointrecurrence 0.19     -0.04
+##  Residual                        0.24          
+## Num. levels: donor 92, tissue_type 2 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 5.0    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{mean}\NormalTok{(}\KeywordTok{sapply}\NormalTok{(}\KeywordTok{as.array}\NormalTok{(f2)[,,}\StringTok{'timepointrecurrence'}\NormalTok{], }\DataTypeTok{FUN =} \NormalTok{function(x) x <=}\StringTok{ }\DecValTok{0}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## [1] 0.086125
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{rstanarm::}\KeywordTok{posterior_interval}\NormalTok{(f2, }\DataTypeTok{prob =} \FloatTok{0.95}\NormalTok{, }\DataTypeTok{regex_pars =} \KeywordTok{c}\NormalTok{(}\StringTok{'^timepoint'}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                           2.5%    97.5%
+## timepointrecurrence -0.2184951 1.098158
+\end{verbatim}
+
+\subsubsection{Plot predicted values}\label{plot-predicted-values}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{f1.ppred <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(f1) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.)}
+\NormalTok{f2.ppred <-}\StringTok{ }\NormalTok{rstanarm::}\KeywordTok{predictive_interval}\NormalTok{(f2) %>%}
+\StringTok{  }\KeywordTok{tbl_df}\NormalTok{(.)}
+
+\NormalTok{f1.md <-}\StringTok{ }
+\StringTok{  }\NormalTok{md_solid %>%}\StringTok{ }
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(f1.ppred) }
+\NormalTok{f2.md <-}\StringTok{ }
+\StringTok{  }\NormalTok{md %>%}
+\StringTok{  }\NormalTok{dplyr::}\KeywordTok{bind_cols}\NormalTok{(f2.ppred)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{## plotting posterior-predicted values, with observed datapoints}
+\KeywordTok{ggplot}\NormalTok{(md, }\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{y =} \KeywordTok{log1p}\NormalTok{(peptides))) +}\StringTok{ }
+\StringTok{  }\KeywordTok{geom_jitter}\NormalTok{() +}
+\StringTok{  }\KeywordTok{facet_wrap}\NormalTok{(~tissue_type) +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: solid samples'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{f1.md %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, tissue_type, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{geom_errorbar}\NormalTok{(}\KeywordTok{aes}\NormalTok{(}\DataTypeTok{x =} \NormalTok{specific_treatment, }\DataTypeTok{ymin =} \StringTok{`}\DataTypeTok{5%}\StringTok{`}\NormalTok{, }\DataTypeTok{ymax =} \StringTok{`}\DataTypeTok{95%}\StringTok{`}\NormalTok{, }\DataTypeTok{colour =} \StringTok{'model: all samples'}\NormalTok{),}
+                \DataTypeTok{data =} \NormalTok{f2.md %>%}\StringTok{ }\NormalTok{dplyr::}\KeywordTok{distinct}\NormalTok{(specific_treatment, tissue_type, }\DataTypeTok{.keep_all=}\NormalTok{T),}
+                \DataTypeTok{alpha =} \FloatTok{0.5}\NormalTok{) +}
+\StringTok{  }\KeywordTok{theme_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-peptides-ppred-1.pdf}
+
+\end{document}

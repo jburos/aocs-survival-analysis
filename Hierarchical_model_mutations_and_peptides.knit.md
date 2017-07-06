@@ -15,59 +15,45 @@ This is a re-analysis of mutation count by sample type (primary / relapse), tiss
 
 This section uses a Bayesian analysis in order to better adjust for the dramatic imbalance in groups. 
  
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warnings = FALSE)
 
-library(readr)     # load data
-library(tidyverse) # data manipulation
-library(rstanarm)  # bayesian model fits
-library(bayesplot) # plotting model results
-library(parallel)  # installed by rstanarm
-options(mc.cores = min(parallel::detectCores(), 4))
-stan_seed <- 4739375
-
-# load data
-data_url <- 'https://raw.githubusercontent.com/hammerlab/paper-aocs-chemo-neoantigens/master/additional-files/Additional%20File%201.csv'
-d <- readr::read_csv(data_url) 
-
-## modified or mutated data stored in md
-above_quantile <- function(x, q, ...) {
-  x > quantile(x, probs = q, ...)
-}
-
-above_quantile_str <- function(x, q, ...) {
-  threshold <- as.integer(quantile(x, probs = q, ...))
-  ifelse(x > threshold, stringr::str_c('>', threshold), stringr::str_c('<=', threshold))
-}
-
-md <- d %>%
-  tidyr::drop_na(mutations, peptides)
-
-md_primary_solid <- md %>%
-  dplyr::filter(tissue_type == 'solid' & timepoint == 'primary')
-
-md_solid <- md %>%
-  dplyr::filter(tissue_type == 'solid')
-```
 
 ## Summarize data
 
 In this analysis we will be looking at how the number of `mutations` & `peptides` (predicted neoantigens) varies with the sample type (solid / ascites) and timing of acquisition (relapse / primary and treated / untreated).
 
-```{r plot-data}
+
+```r
 ggplot(md, aes(x = mutations_per_mb, fill = specific_treatment)) + 
   facet_wrap(~tissue_type) +
   geom_histogram(position = 'dodge') +
   theme_minimal()
 ```
 
+```
+## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/plot-data-1.pdf)<!-- --> 
+
 How many observations do we have for each of these categories?
 
-```{r tally-data}
+
+```r
 md %>%
   group_by(tissue_type, treatment, timepoint) %>%
   tally() %>%
   tidyr::spread(key = tissue_type, value = n, fill = 0)
+```
+
+```
+## Source: local data frame [3 x 4]
+## Groups: treatment [2]
+## 
+##         treatment  timepoint ascites solid
+## *           <chr>      <chr>   <dbl> <dbl>
+## 1   chemo treated    primary       0     5
+## 2   chemo treated recurrence      24     6
+## 3 treatment naive    primary       4    75
 ```
 
 Strikes me that the "recurrent" timepoint is problematic in this analysis, since we don't have any untreated/recurent samples & so cannot separate effect of recurrence from that of treatment. 
@@ -80,13 +66,14 @@ Only after these effects are well established should we turn to the ascites samp
 
 ## Restricting to primary, solid samples
 
-We now have `r print(md_primary_solid %>% tally() %>% unlist())` samples, `r print(md_primary_solid %>% dplyr::filter(treatment == 'treatment naive') %>% tally())` are treatment-naive.
+We now have  samples,  are treatment-naive.
 
-Let's review how these metrics are distributed in this subset of our samples. First we note that the maximum number of samples per donor in this subset of our data is `r print(md_primary_solid %>% group_by(donor) %>% dplyr::tally() %>% dplyr::summarize(max(n)) %>% unlist())`, meaning we have no duplicate samples.
+Let's review how these metrics are distributed in this subset of our samples. First we note that the maximum number of samples per donor in this subset of our data is , meaning we have no duplicate samples.
 
 Here, looking at metrics among all primary, solid samples irrespective of treatment:
 
-```{r psolid-review-dist}
+
+```r
 ggplot(md_primary_solid %>%
          tidyr::gather(value = 'value', key = 'variable', mutations, mutations_per_mb, peptides), aes(x = value)) + 
   geom_density() + 
@@ -94,11 +81,14 @@ ggplot(md_primary_solid %>%
   facet_wrap(~variable, scale = 'free')
 ```
 
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-review-dist-1.pdf)<!-- --> 
+
 These numbers are not exactly normally-distributed. 
 
 Perhaps using a log-transformed value?
 
-```{r psolid-review-dist-log}
+
+```r
 ggplot(md_primary_solid %>%
          tidyr::gather(value = 'value', key = 'variable', mutations, mutations_per_mb, peptides),
        aes(x = log1p(value))) + 
@@ -107,7 +97,10 @@ ggplot(md_primary_solid %>%
   facet_wrap(~variable, scale = 'free')
 ```
 
-```{r psolid-review-dist-log-by-trt}
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-review-dist-log-1.pdf)<!-- --> 
+
+
+```r
 ggplot(md_primary_solid %>%
          tidyr::gather(value = 'value', key = 'variable', mutations, mutations_per_mb, peptides),
        aes(x = log1p(value), fill = treatment)) + 
@@ -116,11 +109,14 @@ ggplot(md_primary_solid %>%
   facet_wrap(~variable, scale = 'free')
 ```
 
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-review-dist-log-by-trt-1.pdf)<!-- --> 
+
 What is noticeable here is that, given the small number of treated samples, it is very hard to tell graphically whether there is any difference in the two distributions.
 
 Let's try fitting a model to these data.
 
-```{r psolid-trt1-model}
+
+```r
 trt1 <- rstanarm::stan_glm(log1p(mutations) ~ treatment,
                            data = md_primary_solid,
                            seed = stan_seed
@@ -128,15 +124,40 @@ trt1 <- rstanarm::stan_glm(log1p(mutations) ~ treatment,
 trt1
 ```
 
+```
+## stan_glm
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## sigma                    0.5    0.0   
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.8    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
+
 This suggests the treatment effect on number of mutations may be relatively modest, with a median effect indicating that the average mutation count among treatment naive samples would be 20% higher than that among chemo-treated samples (with a relatively wide posterior interval). 
 
-```{r psolid-trt1-coef-plot}
+
+```r
 bayesplot::mcmc_areas(as.array(trt1), pars = 'treatmenttreatment naive')
 ```
 
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt1-coef-plot-1.pdf)<!-- --> 
+
 How well do this model's predictions match our data?
 
-```{r psolid-trt1-ppvalues}
+
+```r
 trt1.ppred <- rstanarm::predictive_interval(trt1) %>%
   tbl_df(.)
 trt1.median <- rstanarm::predictive_interval(trt1, 0.01) %>%
@@ -150,7 +171,8 @@ md_primary_solid2 <-
   dplyr::bind_cols(trt1.median)
 ```
 
-```{r psolid-trt1-ppred}
+
+```r
 ggplot(md_primary_solid2, aes(x = treatment, y = log1p(mutations))) + 
   geom_jitter() +
   geom_errorbar(aes(x = treatment, ymin = `5%`, ymax = `95%`),
@@ -158,11 +180,16 @@ ggplot(md_primary_solid2, aes(x = treatment, y = log1p(mutations))) +
                 colour = 'red', alpha = 0.5)
 ```
 
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt1-ppred-1.pdf)<!-- --> 
+
 How well does our model recover the observed distributions of variables?
 
-```{r psolid-trt1-ppcheck}
+
+```r
 bayesplot::pp_check(trt1)
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt1-ppcheck-1.pdf)<!-- --> 
 
 Not bad .. 
 
@@ -170,7 +197,8 @@ Not bad ..
 
 What if we tried a negative-binomial model instead?
 
-```{r psolid-trt1nb-model}
+
+```r
 trt1nb <- rstanarm::stan_glm(mutations ~ treatment,
                              data = md_primary_solid,
                              family = neg_binomial_2(),
@@ -179,11 +207,35 @@ trt1nb <- rstanarm::stan_glm(mutations ~ treatment,
 trt1nb
 ```
 
+```
+## stan_glm
+##  family:  neg_binomial_2 [log]
+##  formula: mutations ~ treatment
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.8    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## reciprocal_dispersion    4.3    0.7   
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 7777.7  612.2
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
+
 (notice that here we have almost identical parameter estimates)
 
-```{r psolid-trt1nb-ppcheck}
+
+```r
 bayesplot::pp_check(trt1nb)
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt1nb-ppcheck-1.pdf)<!-- --> 
 
 Here we have a slightly better fit, but not by much. Consistent with theory, the log-transform works well as an approximation to the 'counting process' at high levels of the counts.
 
@@ -191,7 +243,8 @@ Here we have a slightly better fit, but not by much. Consistent with theory, the
 
 Next we look at estimating the effects of number of cycles on mutation count. Sometimes adding more information can address noise in the model, and sometimes it just .. adds noise.
 
-```{r psolid-trt2}
+
+```r
 trt2 <- rstanarm::stan_glm(log1p(mutations) ~ treatment + `total cycles`,
                            data = md_primary_solid %>%
                              dplyr::mutate(no_treatment = ifelse(treatment == 'treatment naive', 1, 0),
@@ -200,11 +253,36 @@ trt2 <- rstanarm::stan_glm(log1p(mutations) ~ treatment + `total cycles`,
 trt2
 ```
 
+```
+## stan_glm
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment + `total cycles`
+## ------
+## 
+## Estimates:
+##                Median MAD_SD
+## (Intercept)     8.9    0.1  
+## treatment       1.1    0.7  
+## `total cycles` -0.2    0.1  
+## sigma           0.5    0.0  
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.8    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
+
 Let's plot the distributions around these effects
 
-```{r psolid-trt2-coef-plot}
+
+```r
 bayesplot::mcmc_areas(as.array(trt2), pars = c('treatment', '`total cycles`'))
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt2-coef-plot-1.pdf)<!-- --> 
 
 The interpretation of these results would be that : 
 
@@ -219,7 +297,8 @@ Before moving on to include solid/relapse/treated & ascites samples, we fit the 
 
 This model is structurally very similar to fitting a no-intercept model, with formula `mutations ~ 0 + treatment`, which would estimate separate mean numbers of mutations among treated & naive solid primary samples. The difference is that, in this formulation, the treatment-specific means are drawn from a higher-level distribution of means which acts like a prior for the group-specific means, and which in effect regularizes the treatment & non-treatment means -- the group-specific means end up shrinking towards an overall inter-group mean.
 
-```{r psolid-trt3}
+
+```r
 trt3 <- rstanarm::stan_glmer(log1p(mutations) ~ (1 | treatment),
                            data = md_primary_solid,
                            adapt_delta = 0.999,
@@ -228,27 +307,92 @@ trt3 <- rstanarm::stan_glmer(log1p(mutations) ~ (1 | treatment),
 trt3
 ```
 
+```
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ (1 | treatment)
+## ------
+## 
+## Estimates:
+##             Median MAD_SD
+## (Intercept) 8.8    0.2   
+## sigma       0.5    0.0   
+## 
+## Error terms:
+##  Groups    Name        Std.Dev.
+##  treatment (Intercept) 0.42    
+##  Residual              0.48    
+## Num. levels: treatment 2 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.8    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
+
 The summary for this model does not include the group-specific means by default. We can, however, recover them quite easily.
 
-```{r psolid-trt3-coef-plot}
+
+```r
 bayesplot::mcmc_areas(as.array(trt3), regex_pars = '\\(Intercept\\) treatment\\:')
 ```
 
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/psolid-trt3-coef-plot-1.pdf)<!-- --> 
+
 A textual summary can be accessed via `summary`:
 
-```{r psolid-trt3-summary}
+
+```r
 summary(trt3, regex_pars = c('^b'))
+```
+
+```
+## 
+## Model Info:
+## 
+##  function:  stan_glmer
+##  family:    gaussian [identity]
+##  formula:   log1p(mutations) ~ (1 | treatment)
+##  algorithm: sampling
+##  priors:    see help('prior_summary')
+##  sample:    4000 (posterior sample size)
+##  num obs:   80
+##  groups:    treatment (2)
+## 
+## Estimates:
+##                                            mean   sd   2.5%   25%   50%
+## b[(Intercept) treatment:chemo_treated]    0.0    0.3 -0.6   -0.1   0.0 
+## b[(Intercept) treatment:treatment_naive]  0.1    0.3 -0.5    0.0   0.0 
+##                                            75%   97.5%
+## b[(Intercept) treatment:chemo_treated]    0.0   0.7   
+## b[(Intercept) treatment:treatment_naive]  0.2   0.9   
+## 
+## Diagnostics:
+##                                          mcse Rhat n_eff
+## b[(Intercept) treatment:chemo_treated]   0.0  1.0  730  
+## b[(Intercept) treatment:treatment_naive] 0.0  1.0  594  
+## 
+## For each parameter, mcse is Monte Carlo standard error, n_eff is a crude measure of effective sample size, and Rhat is the potential scale reduction factor on split chains (at convergence Rhat=1).
 ```
 
 However, in order to estimate the average difference between treated and naive samples, it is easiest to use posterior-predicted values.
 
 For this, we construct a hypothetical dataset containing one treated & one treatment-naive sample.
 
-```{r psolid-trt3-treatment-effect}
+
+```r
 newdata <- data.frame(treatment = c('chemo_treated', 'treatment_naive'),
                       timepoint = c('primary', 'primary'))
 ppred_newdata <- rstanarm::posterior_predict(trt3, newdata = newdata)
 summary(apply(ppred_newdata, 1, diff))
+```
+
+```
+##     Min.  1st Qu.   Median     Mean  3rd Qu.     Max. 
+## -2.43100 -0.36080  0.09884  0.10520  0.57850  2.61800
 ```
 
 This yields the posterior-predicted distribution of the difference (on scale of `log1(mutations)`) between chemo-treated & treatment-naive samples.
@@ -261,13 +405,14 @@ At this point, we are ready to move on to a variation of this model that include
 
 Now we start to analyze a dataset including primary/untreated, primary/treated & relapse/treated samples.
 
-First we note that the maximum number of samples per donor in this subset of our data is `r print(md_solid %>% group_by(donor) %>% dplyr::tally() %>% dplyr::summarize(max(n)) %>% unlist())`, meaning we have a handful of duplicate samples per donor. We will adjust for this in our analysis.
+First we note that the maximum number of samples per donor in this subset of our data is , meaning we have a handful of duplicate samples per donor. We will adjust for this in our analysis.
  
 ### Using a standard Bayesian glm
 
 First we fit a standard `glm` without any donor-specific adjustments.
 
-```{r allsolid-strt1}
+
+```r
 strt1 <- rstanarm::stan_glm(log1p(mutations) ~ treatment + timepoint,
                            data = md_solid, 
                            adapt_delta = 0.999,
@@ -276,13 +421,38 @@ strt1 <- rstanarm::stan_glm(log1p(mutations) ~ treatment + timepoint,
 strt1
 ```
 
+```
+## stan_glm
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment + timepoint
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## timepointrecurrence      0.8    0.3   
+## sigma                    0.5    0.0   
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.9    0.1   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
+
 Here, we see a similar treatment effect as in our earlier analysis (which is encouraging), but the estimated "recurrence" effect is somewhat higher than the treatment effect.
 
 How well are we recovering the distribution of our `log1p(mutation)` count in this sample?
 
-```{r allsolid-strt1-ppcheck}
+
+```r
 bayesplot::pp_check(strt1)
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsolid-strt1-ppcheck-1.pdf)<!-- --> 
 
 Pretty well.
 
@@ -290,34 +460,89 @@ Pretty well.
 
 Let's fit this model with an adjustment for within-id similarity.
 
-```{r allsolid-strt2}
+
+```r
 strt2 <- rstanarm::stan_glmer(log1p(mutations) ~ treatment + timepoint + (1 | donor),
                            data = md_solid, 
                            adapt_delta = 0.999,
                            iter = 5000,
                            seed = stan_seed
                            )
+```
+
+```
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```r
 strt2
+```
+
+```
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment + timepoint + (1 | donor)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## timepointrecurrence      0.5    0.3   
+## sigma                    0.3    0.1   
+## 
+## Error terms:
+##  Groups   Name        Std.Dev.
+##  donor    (Intercept) 0.36    
+##  Residual             0.29    
+## Num. levels: donor 81 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.9    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
 ```
 
 These findings are similar to those from the earlier model which did not adjust for duplicate samples per donor, although the effect is somewhat attenuated.
 
-```{r allsolid-strt2-coef-plot}
+
+```r
 bayesplot::mcmc_areas(as.array(strt2), regex_pars = c('^treatment', '^timepoint'))
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsolid-strt2-coef-plot-1.pdf)<!-- --> 
 
 According to this model, we have an estimated average 50% increase in mutations for relapse samples, vs primary. 
 
 The 95% credible intervals for this increase are:
 
-```{r allsolid-strt2-coef-summary}
+
+```r
 rstanarm::posterior_interval(strt2, prob = 0.95, pars = c('timepointrecurrence'))
+```
+
+```
+##                            2.5%    97.5%
+## timepointrecurrence -0.05066051 1.125876
 ```
 
 How much of this probability mass is < 0?
 
-```{r allsolid-strt2-coef-pvalue}
+
+```r
 mean(sapply(as.array(strt2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```
+## [1] 0.0383
 ```
 
 This number reflects the so-called 'bayesian p-value', IE the posterior probability of a relapse effect being <= 0. Note that this would correspond to a one-sided p-value in traditional frequentist NHT framework.
@@ -328,40 +553,97 @@ _Side note: this adjustment for `donor` only accounts for the fact that we'd exp
 
 Next we fit a varying-coefficient model, which allows the relapse effect to vary by donor, but models those donor-specific variances as deviations from an overall relapse effect on mutation count.
 
-```{r allsolid-strt3}
+
+```r
 strt3 <- rstanarm::stan_glmer(log1p(mutations) ~ treatment + timepoint + (1 + timepoint | donor),
                            data = md_solid, 
                            adapt_delta = 0.999,
                            seed = stan_seed
                            )
+```
+
+```
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```r
 strt3
+```
+
+```
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ treatment + timepoint + (1 + timepoint | donor)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## timepointrecurrence      0.6    0.4   
+## sigma                    0.3    0.2   
+## 
+## Error terms:
+##  Groups   Name                Std.Dev. Corr 
+##  donor    (Intercept)         0.33          
+##           timepointrecurrence 0.31     -0.09
+##  Residual                     0.32          
+## Num. levels: donor 81 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 8.9    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
 ```
 
 As in our previous examples, we can plot the posterior density of the estimated treatment & relapse effects.
 
-```{r allsolid-strt3-coef-plot}
+
+```r
 bayesplot::mcmc_areas(as.array(strt3), regex_pars = c('^treatment', '^timepoint'))
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsolid-strt3-coef-plot-1.pdf)<!-- --> 
 
 It is not surprising that these effects are similar to those estimated by the previous model, since most of our donors have only 1 sample. But it is reassuring to know that this particular modeling choice has little impact on our findings.
 
 Here, giving a textual summary again
 
-```{r allsolid-strt3-coef-summary}
+
+```r
 rstanarm::posterior_interval(strt3, prob = 0.95, pars = c('timepointrecurrence'))
+```
+
+```
+##                           2.5%    97.5%
+## timepointrecurrence -0.2124145 1.256275
 ```
 
 And, calculating the percentage of posterior density that is <= 0.
 
-```{r allsolid-strt3-coef-pvalue}
+
+```r
 mean(sapply(as.array(strt3)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```
+## [1] 0.06625
 ```
 
 Finally, we can plot our posterior-predicted intervals for the three models thus far, overlaying them with the observed data. 
 
 This is a somewhat useful way to gut-check the model parameters.
 
-```{r allsolid-compare-ppvalues}
+
+```r
 # calculating the posterior-predicted values
 strt3.ppred <- rstanarm::predictive_interval(strt3) %>%
   tbl_df(.)
@@ -388,7 +670,8 @@ md_solid2 <-
   dplyr::bind_cols(strt2.median)
 ```
 
-```{r allsolid-strt3-ppred}
+
+```r
 ## plotting posterior-predicted values, with observed datapoints
 ggplot(md_solid3, aes(x = specific_treatment, y = log1p(mutations))) + 
   geom_jitter() +
@@ -404,11 +687,14 @@ ggplot(md_solid3, aes(x = specific_treatment, y = log1p(mutations))) +
   theme_minimal()
 ```
 
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsolid-strt3-ppred-1.pdf)<!-- --> 
+
 ## Including ascites samples
 
 Finally we look at a model including ascites samples
 
-```{r allsamp-atrt1}
+
+```r
 atrt1 <- rstanarm::stan_glmer(log1p(mutations) ~ 
                                 timepoint + treatment + (1 | donor) +
                                 (1 + timepoint + treatment | tissue_type),
@@ -417,69 +703,153 @@ atrt1 <- rstanarm::stan_glmer(log1p(mutations) ~
                               adapt_delta = 0.999,
                               iter = 4000
                               )
+```
+
+```
+## Warning: There were 5 divergent transitions after warmup. Increasing adapt_delta above 0.999 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+```
+
+```
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```r
 atrt1
+```
+
+```
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ timepoint + treatment + (1 | donor) + (1 + 
+## 	   timepoint + treatment | tissue_type)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              8.7    0.2   
+## timepointrecurrence      0.6    0.2   
+## treatmenttreatment naive 0.2    0.2   
+## sigma                    0.2    0.0   
+## 
+## Error terms:
+##  Groups      Name                     Std.Dev. Corr       
+##  donor       (Intercept)              0.40                
+##  tissue_type (Intercept)              0.15                
+##              timepointrecurrence      0.14     -0.03      
+##              treatmenttreatment naive 0.14     -0.03  0.08
+##  Residual                             0.20                
+## Num. levels: donor 92, tissue_type 2 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 9.0    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
 ```
 
 It's worth noting that this model recovers the distribution of our original data pretty well.
 
-```{r allsamp-atrt1-ppcheck}
+
+```r
 bayesplot::pp_check(atrt1)
 ```
 
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-ppcheck-1.pdf)<!-- --> 
+
 And, samples efficiently
 
-```{r allsamp-atrt1-traceplot}
+
+```r
 bayesplot::mcmc_trace(as.array(atrt1), regex_pars = c('^treatment', '^timepoint'), facet_args = list(ncol = 1))
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-traceplot-1.pdf)<!-- --> 
 
 
 This model includes an overall estimate for treatment & timepoint effects, from which tissue-type-specific coeffients are drawn.
 
 Here are the overall estimated effects.
 
-```{r allsamp-atrt1-coef-plot}
+
+```r
 bayesplot::mcmc_areas(as.array(atrt1), regex_pars = c('^treatment', '^timepoint'))
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-coef-plot-1.pdf)<!-- --> 
 
 Again, they are directionally similar to the effects estimated in our subset analyses.
 
 Let's compare the numerical summaries:
 
-```{r allsamp-atrt1-coef-summary}
+
+```r
 rstanarm::posterior_interval(atrt1, prob = 0.95, regex_pars = c('^timepoint', '^treatment'))
+```
+
+```
+##                                2.5%    97.5%
+## timepointrecurrence       0.1147481 1.062608
+## treatmenttreatment naive -0.2621648 0.631993
 ```
 
 The estimate for recurrent samples is higher in this model than was estimated among solid samples only.
 
-```{r allsamp-compare-to-strt2}
+
+```r
 rstanarm::posterior_interval(strt2, prob = 0.95, regex_pars = c('^timepoint', '^treatment'))
+```
+
+```
+##                                 2.5%     97.5%
+## timepointrecurrence      -0.05066051 1.1258756
+## treatmenttreatment naive -0.25801920 0.5895171
 ```
 
 How much of this probability mass is < 0?
 
-```{r allsamp-atrt1-coef-pvalue}
+
+```r
 mean(sapply(as.array(atrt1)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```
+## [1] 0.010625
 ```
 
 Let's look at the estimates per tissue type.
 
-```{r allsamp-atrt1-coefplot-timepoint-by-tissue-type}
+
+```r
 bayesplot::mcmc_areas(as.array(atrt1), regex_pars = c('^b\\[timepoint'))
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-coefplot-timepoint-by-tissue-type-1.pdf)<!-- --> 
 
 Interesting that, in this model, there is not a lot of variance of effects by tissue type.
 
 Same goes for the treatment effect.
 
-```{r allsamp-atrt1-coefplot-treatment-by-tissue-type}
+
+```r
 bayesplot::mcmc_areas(as.array(atrt1), regex_pars = c('^b\\[treatment'))
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-coefplot-treatment-by-tissue-type-1.pdf)<!-- --> 
 
 This could be due to a lack of sufficient data by which to estimate the variance, thus causing the model to fall back on default weakly informative priors which assume little variance by tissue type.
 
 Let's now summarize our posterior-predicted values as we did in earlier models.
 
-```{r allsamp-atrt1-ppvalues}
+
+```r
 atrt1.ppred <- rstanarm::predictive_interval(atrt1) %>%
   tbl_df(.)
 atrt1.median <- rstanarm::predictive_interval(atrt1, 0.01) %>%
@@ -493,7 +863,8 @@ md1 <-
   dplyr::bind_cols(atrt1.median)
 ```
 
-```{r allsamp-atrt1-ppred}
+
+```r
 ## plotting posterior-predicted values, with observed datapoints
 ggplot(md1, aes(x = specific_treatment, y = log1p(mutations))) + 
   geom_jitter() +
@@ -510,13 +881,16 @@ ggplot(md1, aes(x = specific_treatment, y = log1p(mutations))) +
   theme_minimal()
 ```
 
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt1-ppred-1.pdf)<!-- --> 
+
 Strange how, with each additional sample type added to the model, the estimated mean primary/treated `log1p(mutation)` count gets lower.
 
 ### Removing treatment from the model
 
 What happens if we remove treatment from the model, and instead compare all relapse vs all primary (treated + untreated) samples?
 
-```{r allsamp-atrt2}
+
+```r
 atrt2 <- rstanarm::stan_glmer(log1p(mutations) ~ 
                                 timepoint + (1 | donor) +
                                 (1 + timepoint | tissue_type),
@@ -525,10 +899,58 @@ atrt2 <- rstanarm::stan_glmer(log1p(mutations) ~
                               adapt_delta = 0.999,
                               iter = 4000
                               )
+```
+
+```
+## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.999 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+```
+
+```
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```r
 atrt2
 ```
 
-```{r allsamp-atrt2-ppvalues}
+```
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(mutations) ~ timepoint + (1 | donor) + (1 + timepoint | 
+## 	   tissue_type)
+## ------
+## 
+## Estimates:
+##                     Median MAD_SD
+## (Intercept)         8.9    0.1   
+## timepointrecurrence 0.4    0.1   
+## sigma               0.2    0.0   
+## 
+## Error terms:
+##  Groups      Name                Std.Dev. Corr
+##  donor       (Intercept)         0.40         
+##  tissue_type (Intercept)         0.18         
+##              timepointrecurrence 0.17     0.03
+##  Residual                        0.20         
+## Num. levels: donor 92, tissue_type 2 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 9.0    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
+
+
+```r
 atrt2.ppred <- rstanarm::predictive_interval(atrt2) %>%
   tbl_df(.)
 atrt2.median <- rstanarm::predictive_interval(atrt2, 0.01) %>%
@@ -542,7 +964,8 @@ md2 <-
   dplyr::bind_cols(atrt2.median)
 ```
 
-```{r allsamp-atrt2-ppred}
+
+```r
 ## plotting posterior-predicted values, with observed datapoints
 ggplot(md2, aes(x = specific_treatment, y = log1p(mutations))) + 
   geom_jitter() +
@@ -556,25 +979,39 @@ ggplot(md2, aes(x = specific_treatment, y = log1p(mutations))) +
   theme_minimal()
 ```
 
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-atrt2-ppred-1.pdf)<!-- --> 
+
 The only explanation for this must be that the scenarios with multiple samples per donor must have exaggerated the primary/treated vs primary/untreated effects in this model.
 
 What is a numerical summary of this recurrence effect, in a univariate model adjusting only for multiple samples per donor & tissue type?
 
-```{r allsamp-atrt2-coef-summary}
+
+```r
 rstanarm::posterior_interval(atrt2, prob = 0.95, regex_pars = c('^timepoint'))
+```
+
+```
+##                           2.5%     97.5%
+## timepointrecurrence 0.08891223 0.6694402
 ```
 
 How much of this probability mass is < 0?
 
-```{r allsamp-atrt2-coef-pvalue}
+
+```r
 mean(sapply(as.array(atrt2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```
+## [1] 0.01225
 ```
 
 ## Analyzing peptides
 
 ### Among solid samples
 
-```{r allsamp-f1}
+
+```r
 f1 <- rstanarm::stan_glmer(log1p(peptides) ~ 
                                 timepoint + treatment + (1 | donor),
                               data = md_solid,
@@ -582,21 +1019,73 @@ f1 <- rstanarm::stan_glmer(log1p(peptides) ~
                               adapt_delta = 0.999,
                               iter = 4000
                               )
+```
+
+```
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```r
 f1
 ```
 
+```
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(peptides) ~ timepoint + treatment + (1 | donor)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              4.7    0.3   
+## timepointrecurrence      0.4    0.4   
+## treatmenttreatment naive 0.1    0.3   
+## sigma                    0.3    0.2   
+## 
+## Error terms:
+##  Groups   Name        Std.Dev.
+##  donor    (Intercept) 0.57    
+##  Residual             0.36    
+## Num. levels: donor 81 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 4.9    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
 
-```{r}
+
+
+```r
 mean(sapply(as.array(f1)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
 ```
 
-```{r}
+```
+## [1] 0.131875
+```
+
+
+```r
 rstanarm::posterior_interval(f1, prob = 0.95, regex_pars = c('^timepoint'))
+```
+
+```
+##                           2.5%   97.5%
+## timepointrecurrence -0.3180513 1.37191
 ```
 
 ### Among all samples
 
-```{r allsamp-f2}
+
+```r
 f2 <- rstanarm::stan_glmer(log1p(peptides) ~ 
                                 timepoint + treatment + (1 | donor) +
                                 (1 + timepoint | tissue_type),
@@ -605,20 +1094,80 @@ f2 <- rstanarm::stan_glmer(log1p(peptides) ~
                               adapt_delta = 0.999,
                               iter = 4000
                               )
+```
+
+```
+## Warning: There were 1 divergent transitions after warmup. Increasing adapt_delta above 0.999 may help. See
+## http://mc-stan.org/misc/warnings.html#divergent-transitions-after-warmup
+```
+
+```
+## Warning: There were 4 chains where the estimated Bayesian Fraction of Missing Information was low. See
+## http://mc-stan.org/misc/warnings.html#bfmi-low
+```
+
+```
+## Warning: Examine the pairs() plot to diagnose sampling problems
+```
+
+```r
 f2
 ```
 
-```{r}
+```
+## stan_glmer
+##  family:  gaussian [identity]
+##  formula: log1p(peptides) ~ timepoint + treatment + (1 | donor) + (1 + 
+## 	   timepoint | tissue_type)
+## ------
+## 
+## Estimates:
+##                          Median MAD_SD
+## (Intercept)              4.7    0.3   
+## timepointrecurrence      0.5    0.3   
+## treatmenttreatment naive 0.1    0.3   
+## sigma                    0.2    0.0   
+## 
+## Error terms:
+##  Groups      Name                Std.Dev. Corr 
+##  donor       (Intercept)         0.62          
+##  tissue_type (Intercept)         0.19          
+##              timepointrecurrence 0.19     -0.04
+##  Residual                        0.24          
+## Num. levels: donor 92, tissue_type 2 
+## 
+## Sample avg. posterior predictive 
+## distribution of y (X = xbar):
+##          Median MAD_SD
+## mean_PPD 5.0    0.0   
+## 
+## ------
+## For info on the priors used see help('prior_summary.stanreg').
+```
+
+
+```r
 mean(sapply(as.array(f2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
 ```
 
-```{r}
+```
+## [1] 0.086125
+```
+
+
+```r
 rstanarm::posterior_interval(f2, prob = 0.95, regex_pars = c('^timepoint'))
+```
+
+```
+##                           2.5%    97.5%
+## timepointrecurrence -0.2184951 1.098158
 ```
 
 ### Plot predicted values
 
-```{r allsamp-peptides-ppvalues}
+
+```r
 f1.ppred <- rstanarm::predictive_interval(f1) %>%
   tbl_df(.)
 f2.ppred <- rstanarm::predictive_interval(f2) %>%
@@ -632,7 +1181,8 @@ f2.md <-
   dplyr::bind_cols(f2.ppred)
 ```
 
-```{r allsamp-peptides-ppred}
+
+```r
 ## plotting posterior-predicted values, with observed datapoints
 ggplot(md, aes(x = specific_treatment, y = log1p(peptides))) + 
   geom_jitter() +
@@ -645,3 +1195,5 @@ ggplot(md, aes(x = specific_treatment, y = log1p(peptides))) +
                 alpha = 0.5) +
   theme_minimal()
 ```
+
+![](Hierarchical_model_mutations_and_peptides_files/figure-latex/allsamp-peptides-ppred-1.pdf)<!-- --> 
