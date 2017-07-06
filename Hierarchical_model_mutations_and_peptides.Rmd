@@ -2,7 +2,12 @@
 title: "Hierarchical Analysis of Mutation Burden"
 author: "Jacqueline Buros Novik"
 date: "7/5/2017"
-output: github_document
+output: 
+  pdf_document:
+    toc: true
+    number_sections: true
+    keep_md: true
+    keep_tex: true
 ---
 
 # Supplemental Notebook 1 
@@ -491,7 +496,7 @@ md1 <-
 
 ```{r allsamp-atrt1-ppred}
 ## plotting posterior-predicted values, with observed datapoints
-ggplot(md2, aes(x = specific_treatment, y = log1p(mutations))) + 
+ggplot(md1, aes(x = specific_treatment, y = log1p(mutations))) + 
   geom_jitter() +
   facet_wrap(~tissue_type) +
   geom_errorbar(aes(x = specific_treatment, ymin = `5%`, ymax = `95%`, colour = 'model: primary only'),
