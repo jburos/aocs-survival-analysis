@@ -6,7 +6,6 @@ output:
   pdf_document:
     toc: true
     number_sections: true
-    keep_md: true
     keep_tex: true
 ---
 
@@ -569,4 +568,80 @@ How much of this probability mass is < 0?
 
 ```{r allsamp-atrt2-coef-pvalue}
 mean(sapply(as.array(atrt2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+## Analyzing peptides
+
+### Among solid samples
+
+```{r allsamp-f1}
+f1 <- rstanarm::stan_glmer(log1p(peptides) ~ 
+                                timepoint + treatment + (1 | donor),
+                              data = md_solid,
+                              seed = stan_seed,
+                              adapt_delta = 0.999,
+                              iter = 4000
+                              )
+f1
+```
+
+
+```{r}
+mean(sapply(as.array(f1)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```{r}
+rstanarm::posterior_interval(f1, prob = 0.95, regex_pars = c('^timepoint'))
+```
+
+### Among all samples
+
+```{r allsamp-f2}
+f2 <- rstanarm::stan_glmer(log1p(peptides) ~ 
+                                timepoint + treatment + (1 | donor) +
+                                (1 + timepoint | tissue_type),
+                              data = md,
+                              seed = stan_seed,
+                              adapt_delta = 0.999,
+                              iter = 4000
+                              )
+f2
+```
+
+```{r}
+mean(sapply(as.array(f2)[,,'timepointrecurrence'], FUN = function(x) x <= 0))
+```
+
+```{r}
+rstanarm::posterior_interval(f2, prob = 0.95, regex_pars = c('^timepoint'))
+```
+
+### Plot predicted values
+
+```{r allsamp-peptides-ppvalues}
+f1.ppred <- rstanarm::predictive_interval(f1) %>%
+  tbl_df(.)
+f2.ppred <- rstanarm::predictive_interval(f2) %>%
+  tbl_df(.)
+
+f1.md <- 
+  md %>% 
+  dplyr::bind_cols(f1.ppred) 
+f2.md <- 
+  md %>%
+  dplyr::bind_cols(f2.ppred)
+```
+
+```{r allsamp-peptides-ppred}
+## plotting posterior-predicted values, with observed datapoints
+ggplot(md, aes(x = specific_treatment, y = log1p(peptides))) + 
+  geom_jitter() +
+  facet_wrap(~tissue_type) +
+  geom_errorbar(aes(x = specific_treatment, ymin = `5%`, ymax = `95%`, colour = 'model: solid samples'),
+                data = f1.md %>% dplyr::distinct(specific_treatment, tissue_type, .keep_all=T),
+                alpha = 0.5) +
+  geom_errorbar(aes(x = specific_treatment, ymin = `5%`, ymax = `95%`, colour = 'model: all samples'),
+                data = f2.md %>% dplyr::distinct(specific_treatment, tissue_type, .keep_all=T),
+                alpha = 0.5) +
+  theme_minimal()
 ```
