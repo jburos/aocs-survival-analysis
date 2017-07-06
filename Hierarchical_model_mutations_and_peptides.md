@@ -234,7 +234,7 @@ trt2
     ## Estimates:
     ##                Median MAD_SD
     ## (Intercept)     8.9    0.1  
-    ## treatment       1.0    0.8  
+    ## treatment       1.0    0.7  
     ## `total cycles` -0.2    0.1  
     ## sigma           0.5    0.0  
     ## 
@@ -353,7 +353,7 @@ summary(apply(ppred_newdata, 1, diff))
 ```
 
     ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-    ## -2.1580 -0.3471  0.1025  0.1222  0.6066  2.7920
+    ## -2.0700 -0.3627  0.1211  0.1217  0.5943  2.8150
 
 This yields the posterior-predicted distribution of the difference (on scale of `log1(mutations)`) between chemo-treated & treatment-naive samples.
 
